@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <title>Naimify Smart ICU | From ICU Data to Clinical Action</title>
+    <meta name="description" content="Naimify Smart ICU - Hospital-grade real-time critical care platform connecting bedside devices, unifying patient records, detecting meaningful changes, and empowering clinical workflows." />
+    <!-- Google Fonts Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+      (function() {
+        try {
+          // Landing page "/" is strictly light mode
+          if (window.location.pathname === '/' || window.location.pathname === '') {
+            document.documentElement.classList.remove('dark');
+            return;
+          }
+          var saved = localStorage.getItem('icu_theme');
+          if (saved === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-clinical-bg text-clinical-slate font-sans antialiased selection:bg-clinical-teal selection:text-white min-h-screen w-full max-w-full overflow-x-hidden">
+    <div id="root" class="w-full max-w-full min-h-full overflow-x-hidden"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

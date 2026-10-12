@@ -1,0 +1,261 @@
+import { Patient, Bed } from '../types/patient';
+
+export const MOCK_UNITS = [
+  { id: 'MICU-01', name: 'Medical ICU', totalBeds: 5, occupied: 3, critical: 1, connectivity: 98.7 },
+  { id: 'SICU-01', name: 'Surgical ICU', totalBeds: 4, occupied: 2, critical: 1, connectivity: 99.2 },
+  { id: 'CICU-01', name: 'Cardiac ICU', totalBeds: 3, occupied: 2, critical: 1, connectivity: 100.0 },
+  { id: 'NICU-01', name: 'Neuro ICU', totalBeds: 3, occupied: 2, critical: 1, connectivity: 97.5 },
+];
+
+export const MOCK_PATIENTS: Patient[] = [
+  {
+    id: 'P-1024',
+    mrn: 'MRN-8849201',
+    name: 'Rajesh Sharma',
+    age: 62,
+    gender: 'M',
+    bedNumber: 'BED-07',
+    unitName: 'Medical ICU',
+    status: 'CRITICAL',
+    reviewPriority: 'CRITICAL',
+    admissionTime: '2026-09-15 08:30',
+    admittingDiagnosis: 'ARDS Secondary to Severe Pneumonia',
+    assignedClinician: 'Dr. Ananya Roy (Intensivist)',
+    assignedNurse: 'Nurse Vikram Singh',
+    vitals: {
+      hr: 104,
+      spo2: 91,
+      bpSystolic: 108,
+      bpDiastolic: 64,
+      map: 78,
+      rr: 27,
+      temp: 38.2,
+      quality: 'LIVE',
+      timestamp: '12:41:34'
+    },
+    ventilator: {
+      mode: 'PRVC',
+      peep: 10,
+      fio2: 60,
+      tidalVolume: 420,
+      pPeak: 28,
+      rrSet: 18,
+      rrTotal: 27,
+      ieRatio: '1:2.0',
+      quality: 'LIVE',
+      timestamp: '12:41:32'
+    },
+    deviceConnectivity: 100,
+    lastReviewTime: '11:30 AM',
+    unreadChangesCount: 4
+  },
+  {
+    id: 'P-1025',
+    mrn: 'MRN-9021482',
+    name: 'Sunita Patel',
+    age: 54,
+    gender: 'F',
+    bedNumber: 'BED-03',
+    unitName: 'Medical ICU',
+    status: 'HIGH',
+    reviewPriority: 'HIGH',
+    admissionTime: '2026-09-16 14:15',
+    admittingDiagnosis: 'Septic Shock / Urosepsis',
+    assignedClinician: 'Dr. Ananya Roy (Intensivist)',
+    assignedNurse: 'Nurse Priya Mehta',
+    vitals: {
+      hr: 118,
+      spo2: 94,
+      bpSystolic: 92,
+      bpDiastolic: 55,
+      map: 67,
+      rr: 22,
+      temp: 38.7,
+      quality: 'LIVE',
+      timestamp: '12:41:30'
+    },
+    ventilator: {
+      mode: 'CPAP/PS',
+      peep: 5,
+      fio2: 35,
+      tidalVolume: 480,
+      pPeak: 16,
+      rrSet: 12,
+      rrTotal: 22,
+      ieRatio: '1:2.5',
+      quality: 'LIVE',
+      timestamp: '12:41:28'
+    },
+    deviceConnectivity: 100,
+    lastReviewTime: '10:45 AM',
+    unreadChangesCount: 2
+  },
+  {
+    id: 'P-1026',
+    mrn: 'MRN-7738291',
+    name: 'Amitabh Sen',
+    age: 71,
+    gender: 'M',
+    bedNumber: 'BED-12',
+    unitName: 'Medical ICU',
+    status: 'CRITICAL',
+    reviewPriority: 'CRITICAL',
+    admissionTime: '2026-09-14 22:00',
+    admittingDiagnosis: 'Acute STEMI post-PCI, Cardiogenic Shock',
+    assignedClinician: 'Dr. Rahul Deshmukh',
+    assignedNurse: 'Nurse Vikram Singh',
+    vitals: {
+      hr: 124,
+      spo2: 89,
+      bpSystolic: 84,
+      bpDiastolic: 48,
+      map: 60,
+      rr: 29,
+      temp: 36.8,
+      quality: 'DELAYED',
+      timestamp: '12:37:12'
+    },
+    ventilator: {
+      mode: 'SIMV-PC',
+      peep: 12,
+      fio2: 70,
+      tidalVolume: 390,
+      pPeak: 32,
+      rrSet: 20,
+      rrTotal: 29,
+      ieRatio: '1:1.8',
+      quality: 'DELAYED',
+      timestamp: '12:37:10'
+    },
+    deviceConnectivity: 85,
+    lastReviewTime: '09:15 AM',
+    unreadChangesCount: 5
+  },
+  {
+    id: 'P-1027',
+    mrn: 'MRN-4491028',
+    name: 'Kavita Reddy',
+    age: 48,
+    gender: 'F',
+    bedNumber: 'BED-01',
+    unitName: 'Medical ICU',
+    status: 'ROUTINE',
+    reviewPriority: 'ROUTINE',
+    admissionTime: '2026-09-16 06:45',
+    admittingDiagnosis: 'Diabetic Ketoacidosis Resolution Phase',
+    assignedClinician: 'Dr. Ananya Roy (Intensivist)',
+    assignedNurse: 'Nurse Priya Mehta',
+    vitals: {
+      hr: 76,
+      spo2: 98,
+      bpSystolic: 122,
+      bpDiastolic: 78,
+      map: 92,
+      rr: 16,
+      temp: 37.0,
+      quality: 'LIVE',
+      timestamp: '12:41:35'
+    },
+    deviceConnectivity: 100,
+    lastReviewTime: '12:00 PM',
+    unreadChangesCount: 0
+  },
+  {
+    id: 'P-1028',
+    mrn: 'MRN-5519844',
+    name: 'Harish Verma',
+    age: 68,
+    gender: 'M',
+    bedNumber: 'BED-05',
+    unitName: 'Medical ICU',
+    status: 'STABLE',
+    reviewPriority: 'STABLE',
+    admissionTime: '2026-09-13 11:20',
+    admittingDiagnosis: 'COPD Exacerbation - Weaning Phase',
+    assignedClinician: 'Dr. Rahul Deshmukh',
+    assignedNurse: 'Nurse Vikram Singh',
+    vitals: {
+      hr: 72,
+      spo2: 96,
+      bpSystolic: 118,
+      bpDiastolic: 74,
+      map: 88,
+      rr: 15,
+      temp: 36.9,
+      quality: 'LIVE',
+      timestamp: '12:41:30'
+    },
+    ventilator: {
+      mode: 'CPAP/PS',
+      peep: 5,
+      fio2: 30,
+      tidalVolume: 510,
+      pPeak: 12,
+      rrSet: 10,
+      rrTotal: 15,
+      ieRatio: '1:2.2',
+      quality: 'LIVE',
+      timestamp: '12:41:25'
+    },
+    deviceConnectivity: 100,
+    lastReviewTime: '11:00 AM',
+    unreadChangesCount: 1
+  },
+  {
+    id: 'P-1029',
+    mrn: 'MRN-3381902',
+    name: 'Meena Iyer',
+    age: 59,
+    gender: 'F',
+    bedNumber: 'BED-09',
+    unitName: 'Medical ICU',
+    status: 'HIGH',
+    reviewPriority: 'HIGH',
+    admissionTime: '2026-09-17 01:30',
+    admittingDiagnosis: 'Post Cardiac Arrest / Targeted Temp Management',
+    assignedClinician: 'Dr. Ananya Roy (Intensivist)',
+    assignedNurse: 'Nurse Priya Mehta',
+    vitals: {
+      hr: 92,
+      spo2: 95,
+      bpSystolic: 114,
+      bpDiastolic: 70,
+      map: 84,
+      rr: 18,
+      temp: 36.0,
+      quality: 'LIVE',
+      timestamp: '12:41:33'
+    },
+    ventilator: {
+      mode: 'VCV',
+      peep: 8,
+      fio2: 45,
+      tidalVolume: 440,
+      pPeak: 22,
+      rrSet: 16,
+      rrTotal: 18,
+      ieRatio: '1:2.0',
+      quality: 'LIVE',
+      timestamp: '12:41:30'
+    },
+    deviceConnectivity: 100,
+    lastReviewTime: '08:30 AM',
+    unreadChangesCount: 3
+  }
+];
+
+// Generate bed layout grid for 24 beds
+export const MOCK_BEDS: Bed[] = Array.from({ length: 24 }, (_, i) => {
+  const bedNum = `BED-${(i + 1).toString().padStart(2, '0')}`;
+  const matchingPatient = MOCK_PATIENTS.find(p => p.bedNumber === bedNum);
+  return {
+    id: `bed-${i + 1}`,
+    number: bedNum,
+    unitId: 'MICU-01',
+    unitName: 'Medical ICU',
+    occupied: !!matchingPatient,
+    patientId: matchingPatient?.id,
+    x: (i % 6) * 160 + 20,
+    y: Math.floor(i / 6) * 140 + 20
+  };
+});

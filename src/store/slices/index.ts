@@ -1,0 +1,15 @@
+// Redux Reducer Module Barrel Exporters
+export { default as authReducer } from './authSlice';
+export { default as doctorReducer } from './doctorSlice';
+export { default as hospitalAdminReducer } from './hospitalAdminSlice';
+export { default as hospitalReducer } from './hospitalSlice';
+export { default as icuBedReducer } from './icuBedSlice';
+export { default as logReducer } from './logSlice';
+export { default as nurseReducer } from './nurseSlice';
+export { default as patientReducer } from './patientSlice';
+export { default as reportReducer } from './reportSlice';
+export { default as rolePermissionReducer } from './rolePermissionSlice';
+export { default as settingsReducer } from './settingsSlice';
+export { default as shiftReducer } from './shiftSlice';
+export { default as superAdminReducer } from './superAdminSlice';
+export { default as userReducer } from './userSlice';

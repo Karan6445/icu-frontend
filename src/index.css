@@ -1,0 +1,434 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply w-full max-w-full overflow-x-hidden;
+    -webkit-text-size-adjust: 100%;
+    box-sizing: border-box;
+  }
+  body {
+    @apply w-full max-w-full overflow-x-hidden bg-[#F3F4F6] text-slate-900 font-sans antialiased selection:bg-[#10B981] selection:text-white transition-colors duration-200;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  #root {
+    @apply w-full max-w-full overflow-x-hidden;
+    min-height: 100%;
+  }
+  .dark body {
+    @apply bg-[#0F172A] text-[#F8FAFC] selection:bg-[#38BDF8] selection:text-[#0F172A];
+  }
+}
+
+/* ========================================================
+   LANDING PAGE LIGHT MODE ISOLATION
+   The Landing page is strictly light mode and ignores dark mode
+   ======================================================== */
+.landing-page,
+.landing-page * {
+  color-scheme: light;
+}
+
+.dark .landing-page {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+.dark .landing-page header {
+  background: linear-gradient(to right, rgba(240, 249, 255, 0.95), rgba(239, 246, 255, 0.95), rgba(224, 242, 254, 0.9)) !important;
+  border-color: #BAE6FD !important;
+  color: #0F172A !important;
+}
+
+.dark .landing-page .bg-white {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: #E2E8F0 !important;
+}
+
+.dark .landing-page .bg-slate-50 {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+.dark .landing-page h1,
+.dark .landing-page h2,
+.dark .landing-page h3,
+.dark .landing-page h4,
+.dark .landing-page h5,
+.dark .landing-page h6,
+.dark .landing-page .text-slate-900 {
+  color: #0F172A !important;
+}
+
+.dark .landing-page p,
+.dark .landing-page .text-slate-600 {
+  color: #475569 !important;
+}
+
+.dark .landing-page nav a {
+  color: #1E293B !important;
+}
+
+.dark .landing-page nav a:hover {
+  color: #1E3A8A !important;
+}
+
+/* Theme 1: Midnight Slate & Sky (Dark Mode for Low Eye Strain) */
+.dark body:not(:has(.landing-page)),
+.dark main,
+.dark .bg-\[\#F3F4F6\],
+.dark .bg-clinical-bg {
+  background-color: #0F172A !important;
+  color: #F8FAFC !important;
+}
+
+/* Sidebar & Navigation Bar in Dark Mode */
+.dark aside,
+.dark header {
+  background-color: #1E293B !important;
+  border-color: #475569 !important;
+  color: #F8FAFC !important;
+}
+
+/* Cards & Containers in Dark Mode */
+.dark .bg-white,
+.dark .bg-slate-50,
+.dark .bg-slate-100,
+.dark .bg-slate-900,
+.dark .bg-slate-950 {
+  background-color: #334155 !important;
+  color: #F8FAFC !important;
+  border-color: #475569 !important;
+}
+
+/* Nested cards & sub-panels in Dark Mode for visual depth & contrast */
+.dark .bg-white .bg-slate-50,
+.dark .bg-white .bg-slate-100,
+.dark .bg-slate-900 .bg-slate-50,
+.dark .bg-slate-800 .bg-slate-50,
+.dark .district-card {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+.dark .bg-white .bg-slate-50:hover,
+.dark .bg-slate-900 .bg-slate-50:hover,
+.dark .district-card:hover {
+  background-color: #243248 !important;
+  border-color: #0D9488 !important;
+}
+
+/* Badges & Pills with bg-slate-200 in Dark Mode (fixes washed out white-on-gray) */
+.dark .bg-slate-200,
+.dark .district-badge {
+  background-color: #0F172A !important;
+  color: #38BDF8 !important;
+  border: 1px solid #334155 !important;
+}
+
+/* Dividers & Borders in Dark Mode */
+.dark .border,
+.dark .border-b,
+.dark .border-t,
+.dark .border-l,
+.dark .border-r,
+.dark .border-slate-200,
+.dark .border-slate-300,
+.dark .border-gray-300 {
+  border-color: #475569 !important;
+}
+
+/* Text Colors in Dark Mode */
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6,
+.dark th,
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700,
+.dark .text-black {
+  color: #F8FAFC !important;
+}
+
+.dark p,
+.dark td,
+.dark .text-slate-500,
+.dark .text-slate-600,
+.dark .text-slate-400,
+.dark .text-teal-200,
+.dark .text-teal-100 {
+  color: #CBD5E1 !important;
+}
+
+/* Sky Blue Light Accent (#38BDF8) in Dark Mode */
+.dark .bg-emerald-600,
+.dark .bg-emerald-500,
+.dark .bg-teal-600,
+.dark .active-tab {
+  background-color: #38BDF8 !important;
+  color: #0F172A !important;
+  border-color: #0284C7 !important;
+}
+
+.dark .text-teal-600,
+.dark .text-teal-700 {
+  color: #38BDF8 !important;
+}
+
+.dark .text-emerald-600,
+.dark .text-emerald-700 {
+  color: #34D399 !important;
+}
+
+/* Inputs & Form fields in Dark Mode */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1E293B !important;
+  color: #F8FAFC !important;
+  border-color: #475569 !important;
+}
+
+.dark input.bg-transparent,
+.dark textarea.bg-transparent {
+  background-color: transparent !important;
+}
+
+/* Table headers in Dark Mode */
+.dark thead,
+.dark thead tr,
+.dark thead th {
+  background-color: #1E293B !important;
+  color: #94A3B8 !important;
+  border-color: #334155 !important;
+}
+
+/* ========================================================
+   GLOBAL DARK MODE HOVER SYSTEM (Fixes white hover glare everywhere)
+   ======================================================== */
+
+/* Table rows on hover in Dark Mode - smooth midnight slate hover, NEVER white */
+.dark tr:hover,
+.dark tbody tr:hover,
+.dark tr.hover\:bg-slate-50:hover,
+.dark tr.hover\:bg-slate-100:hover,
+.dark tr.hover\:bg-white:hover,
+.dark tr[class*="hover:bg-"]:hover {
+  background-color: #1E293B !important;
+}
+
+/* Ensure text inside hovered table row in dark mode remains crisp and readable */
+.dark tr:hover td,
+.dark tbody tr:hover td,
+.dark tr:hover th,
+.dark tbody tr:hover th {
+  color: #F8FAFC !important;
+}
+
+.dark tr:hover td .text-slate-400,
+.dark tr:hover td .text-slate-500,
+.dark tr:hover td .text-slate-600 {
+  color: #94A3B8 !important;
+}
+
+.dark tr:hover td .text-slate-700,
+.dark tr:hover td .text-slate-800,
+.dark tr:hover td .text-slate-900 {
+  color: #F8FAFC !important;
+}
+
+/* Semantic badge and accent colors inside hovered table rows */
+.dark tr:hover [class*="text-rose-"],
+.dark tr:hover [class*="text-red-"] {
+  color: #FB7185 !important;
+}
+
+.dark tr:hover [class*="text-emerald-"],
+.dark tr:hover [class*="text-green-"] {
+  color: #34D399 !important;
+}
+
+.dark tr:hover [class*="text-teal-"],
+.dark tr:hover [class*="text-sky-"] {
+  color: #38BDF8 !important;
+}
+
+.dark tr:hover [class*="text-amber-"],
+.dark tr:hover [class*="text-yellow-"] {
+  color: #FBBF24 !important;
+}
+
+.dark tr:hover [class*="text-purple-"],
+.dark tr:hover [class*="text-violet-"] {
+  color: #C084FC !important;
+}
+
+/* Any light background hover redirected to dark slate in Dark Mode */
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-slate-200:hover,
+.dark .hover\:bg-white:hover,
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-gray-200:hover,
+.dark .hover\:bg-emerald-50:hover,
+.dark .hover\:bg-teal-50:hover,
+.dark .hover\:bg-teal-100:hover,
+.dark .hover\:bg-blue-50:hover,
+.dark .hover\:bg-blue-100:hover,
+.dark [class*="hover:bg-slate-50"]:hover,
+.dark [class*="hover:bg-slate-100"]:hover,
+.dark [class*="hover:bg-slate-200"]:hover,
+.dark [class*="hover:bg-white"]:hover,
+.dark [class*="hover:bg-emerald-50"]:hover,
+.dark [class*="hover:bg-teal-50"]:hover,
+.dark [class*="hover:bg-teal-100"]:hover,
+.dark [class*="hover:bg-blue-50"]:hover {
+  background-color: #1E293B !important;
+  color: #F8FAFC !important;
+  border-color: #475569 !important;
+}
+
+/* Fix dark text on hover in Dark Mode (e.g. hover:text-slate-900 / hover:text-black) */
+.dark .hover\:text-slate-900:hover,
+.dark .hover\:text-slate-800:hover,
+.dark .hover\:text-slate-700:hover,
+.dark .hover\:text-slate-600:hover,
+.dark .hover\:text-black:hover,
+.dark [class*="hover:text-slate-900"]:hover,
+.dark [class*="hover:text-slate-800"]:hover,
+.dark [class*="hover:text-slate-700"]:hover {
+  color: #38BDF8 !important; /* Sky blue hover highlight */
+}
+
+/* Action buttons and icons in table rows during hover - only target light backgrounds */
+.dark tr:hover button.bg-white,
+.dark tr:hover button.bg-slate-50,
+.dark tr:hover button.bg-slate-100 {
+  background-color: #334155 !important;
+  border-color: #475569 !important;
+}
+
+.dark tr button:hover,
+.dark tr:hover button:hover {
+  filter: brightness(1.2);
+}
+
+/* Badges inside table rows on hover */
+.dark tr:hover .bg-slate-100 {
+  background-color: #1E293B !important;
+  border-color: #475569 !important;
+  color: #F8FAFC !important;
+}
+
+/* Hover borders in Dark Mode */
+.dark .hover\:border-slate-300:hover,
+.dark .hover\:border-slate-400:hover,
+.dark .hover\:border-gray-300:hover {
+  border-color: #38BDF8 !important;
+}
+
+/* Inter typography hierarchy utilities */
+.text-inter-regular {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+}
+
+.text-inter-medium {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+}
+
+.text-inter-semibold {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+/* Custom clinical scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Waveform glowing stroke effects */
+.ecg-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0px 0px 4px rgba(22, 101, 52, 0.6));
+}
+
+.respiratory-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0px 0px 4px rgba(30, 58, 138, 0.6));
+}
+
+@keyframes scanline {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-scanline {
+  animation: scanline 3s linear infinite;
+}
+
+/* Pulse animation for live indicators */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.95); }
+}
+
+.animate-live-pulse {
+  animation: livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Pulse animation for topology data flow */
+@keyframes dataPulse {
+  0% { offset-distance: 0%; opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0.2; }
+}
+
+.animate-data-pulse {
+  animation: dataPulse 2s linear infinite;
+}
+
+/* ECG Heartbeat Pulse Line Animation behind Logo */
+@keyframes ecgPulseLine {
+  0% {
+    stroke-dashoffset: 300;
+  }
+  100% {
+    stroke-dashoffset: -300;
+  }
+}
+
+.animate-ecg-line {
+  stroke-dasharray: 120, 180;
+  animation: ecgPulseLine 2.2s linear infinite;
+}
+
