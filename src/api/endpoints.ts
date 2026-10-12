@@ -23,6 +23,15 @@ export const API_ENDPOINTS = {
     HANDOVERS: (id: string) => `/api/v1/patients/${id}/handovers`,
     TIMELINE: (id: string) => `/api/v1/patients/${id}/timeline`,
   },
+  ADMISSIONS: {
+    BASE: '/api/v1/admissions',
+    ACTIVE: '/api/v1/admissions/active',
+    DETAILS: (id: string) => `/api/v1/admissions/${id}`,
+    DISCHARGE: (id: string) => `/api/v1/admissions/${id}/discharge`,
+    CARE_TEAM: (id: string) => `/api/v1/admissions/${id}/care-team`,
+    CARE_TEAM_MEMBERS: (id: string) => `/api/v1/admissions/${id}/care-team/members`,
+    CARE_TEAM_MEMBER_SINGLE: (id: string, memberId: string) => `/api/v1/admissions/${id}/care-team/members/${memberId}`,
+  },
   ADMIN: {
     HOSPITALS: '/api/v1/admin/hospitals',
     DISTRICTS: '/api/v1/admin/districts',

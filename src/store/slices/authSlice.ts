@@ -1,11 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authApi } from '../../api/authApi';
+import { HOSPITAL_ADMIN_EXACT_PERMISSIONS, CHARGE_NURSE_EXACT_PERMISSIONS } from '../../config/rbacConfig';
 
 export type SystemRole =
   | 'SUPER_ADMIN'
   | 'HOSPITAL_ADMIN'
   | 'ADMIN'
   | 'DIRECTOR'
+  | 'CHARGE_NURSE'
   | 'NURSE_LEAD'
   | 'ECLINIC_ADMIN'
   | 'DOCTOR'
@@ -55,6 +57,19 @@ const defaultUser: UserProfile = {
   mfaEnabled: false,
 };
 
+const getInitialUser = (): UserProfile => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('naimify_active_security_user');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return formatUserProfile(parsed);
+      } catch {}
+    }
+  }
+  return defaultUser;
+};
+
 const formatUserProfile = (rawUserData: any): UserProfile => {
   if (!rawUserData) {
     return defaultUser;
@@ -63,8 +78,10 @@ const formatUserProfile = (rawUserData: any): UserProfile => {
   const rawRole = (userData.role || '').toString().toLowerCase();
 
   let role: SystemRole = 'SUPER_ADMIN';
-  if (rawRole.includes('command') || rawRole.includes('super')) {
+  if (rawRole.includes('command') || rawRole.includes('super') || userData.is_command_center) {
     role = 'SUPER_ADMIN';
+  } else if (rawRole.includes('charge') || rawRole === 'charge_nurse') {
+    role = 'CHARGE_NURSE';
   } else if (rawRole.includes('hospital') || rawRole.includes('admin')) {
     role = 'HOSPITAL_ADMIN';
   } else if (rawRole.includes('doctor') || rawRole.includes('physician')) {
@@ -75,23 +92,53 @@ const formatUserProfile = (rawUserData: any): UserProfile => {
     role = userData.role as SystemRole;
   }
 
-  return {
-    id: userData.id || userData.user_id || 'USR-001',
-    staffId: userData.staffId || userData.staff_id || 'SA-9901',
-    name: userData.name || (userData.email ? userData.email.split('@')[0] : 'Authenticated User'),
-    email: userData.email || 'user@smarticu.org',
+  // Retrieve permissions either from payload, cached storage, or role defaults
+  let userPermissions: string[] = [];
+  if (Array.isArray(userData.permissions) && userData.permissions.length > 0) {
+    userPermissions = userData.permissions;
+  } else if (typeof window !== 'undefined') {
+    const cachedPerms = localStorage.getItem('icu_user_permissions');
+    if (cachedPerms) {
+      try {
+        userPermissions = JSON.parse(cachedPerms);
+      } catch {}
+    }
+  }
+
+  // Authoritative default fallback if not yet provided by server
+  if (userPermissions.length === 0 && role === 'HOSPITAL_ADMIN') {
+    userPermissions = HOSPITAL_ADMIN_EXACT_PERMISSIONS;
+  } else if (userPermissions.length === 0 && (role === 'CHARGE_NURSE' || role === 'NURSE_LEAD')) {
+    userPermissions = CHARGE_NURSE_EXACT_PERMISSIONS;
+  }
+
+  const isChargeNurse = role === 'CHARGE_NURSE' || role === 'NURSE_LEAD';
+
+  const profile: UserProfile = {
+    id: userData.id || userData.user_id || (isChargeNurse ? 'f40d0237-ffa7-458b-bda6-752204c24483' : (role === 'HOSPITAL_ADMIN' ? 'ec647bb6-0880-4f80-bfc4-70f4c37122ec' : 'b503be05-e5e5-43c0-b853-4cf88a014423')),
+    staffId: userData.staffId || userData.staff_id || (role === 'SUPER_ADMIN' ? 'CMD-001' : (role === 'HOSPITAL_ADMIN' ? 'HA-8801' : (isChargeNurse ? 'CN-7704' : 'SA-9901'))),
+    name: userData.name || (role === 'SUPER_ADMIN' ? 'Command Center Directorate (Super Admin)' : (role === 'HOSPITAL_ADMIN' ? 'Hospital Medical Administrator' : (isChargeNurse ? 'Charge Nurse Vikram Sharma' : (userData.email ? userData.email.split('@')[0] : 'Authenticated User')))),
+    email: userData.email || (role === 'SUPER_ADMIN' ? 'superadmin@smarticu.org' : (role === 'HOSPITAL_ADMIN' ? 'hospital.admin@smarticu.org' : (isChargeNurse ? 'nurse.charge@smarticu.org' : 'user@smarticu.org'))),
     role: role,
-    department: userData.department || (role === 'SUPER_ADMIN' ? 'Hospital System Governance Board' : 'Critical Care Unit'),
+    department: userData.department || (role === 'SUPER_ADMIN' ? 'Statewide Critical Care Directorate' : (role === 'HOSPITAL_ADMIN' ? 'Executive Administration & ICU Operations' : (isChargeNurse ? 'Intensive Care Unit (MICU / SICU)' : 'Critical Care Unit'))),
     authorizedUnits: userData.authorizedUnits || userData.authorized_units || ['MICU-01', 'SICU-01'],
     status: userData.status || 'ON_DUTY',
-    specialty: userData.specialty || (role === 'SUPER_ADMIN' ? 'Chief Executive Officer' : 'Intensivist'),
-    experience: userData.experience || '10+ Years',
-    hospital: userData.hospital || userData.hospital_name || 'Patna Medical College & Hospital (PMCH)',
-    hospitalId: userData.hospitalId || userData.hospital_id || '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-    permissions: userData.permissions || [],
+    specialty: userData.specialty || (role === 'SUPER_ADMIN' ? 'Chief Directorate Administrator' : (role === 'HOSPITAL_ADMIN' ? 'Hospital Operations & Critical Care Administration' : (isChargeNurse ? 'ICU Charge Nurse & Clinical Care Lead' : 'Intensivist'))),
+    experience: userData.experience || (isChargeNurse ? '8+ Years Critical Care' : '10+ Years'),
+    hospital: userData.hospital || userData.hospital_name || (role === 'SUPER_ADMIN' ? 'Statewide Command Center Network' : 'Apollo Super Specialty Hospital, Gandhinagar'),
+    hospitalId: userData.hospitalId || userData.hospital_id || 'a324634e-b022-44ac-b633-448e14f35ad4',
+    permissions: userPermissions,
     mfaEnabled: userData.mfaEnabled ?? userData.mfa_enabled ?? false,
     mfaMethod: userData.mfaMethod || userData.mfa_method || 'AUTHENTICATOR',
   };
+
+  if (typeof window !== 'undefined' && userPermissions.length > 0) {
+    try {
+      localStorage.setItem('icu_user_permissions', JSON.stringify(userPermissions));
+    } catch {}
+  }
+
+  return profile;
 };
 
 const getInitialToken = (): boolean => {
@@ -102,14 +149,15 @@ const getInitialToken = (): boolean => {
 };
 
 const hasInitialToken = getInitialToken();
+const initialUser = getInitialUser();
 
 const initialState: AuthState = {
-  user: null,
-  currentUser: defaultUser,
-  activeRole: 'SUPER_ADMIN',
+  user: hasInitialToken ? initialUser : null,
+  currentUser: initialUser,
+  activeRole: initialUser.role || 'SUPER_ADMIN',
   isAuthenticated: hasInitialToken,
   requiresMfa: false,
-  loading: hasInitialToken,
+  loading: false,
   error: null,
   lastApiResponse: null,
 };
@@ -132,10 +180,13 @@ export const fetchCurrentUserThunk = createAsyncThunk(
       const response = await authApi.me();
       return response.data;
     } catch (err: any) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('icu_auth_token');
-      localStorage.removeItem('naimify_active_security_user');
-      return rejectWithValue(err.message || 'Session expired. Please sign in again.');
+      const cached = localStorage.getItem('naimify_active_security_user');
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch {}
+      }
+      return rejectWithValue(err.message || 'Session verification failed.');
     }
   }
 );

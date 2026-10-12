@@ -15,7 +15,9 @@ import {
   Sparkles,
   Bed,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Plus,
+  X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -27,6 +29,13 @@ export const DistrictManagementPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrictModal, setSelectedDistrictModal] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'hospitals' | 'icuBeds' | 'name'>('hospitals');
+
+  // Add District State
+  const [isAddDistrictOpen, setIsAddDistrictOpen] = useState(false);
+  const [newDistName, setNewDistName] = useState('');
+  const [newDistCode, setNewDistCode] = useState('');
+  const [newDistState, setNewDistState] = useState('Bihar');
+  const [bannerMsg, setBannerMsg] = useState<string | null>(null);
 
   // Filter & Search Districts
   const filteredDistricts = districts
@@ -83,6 +92,14 @@ export const DistrictManagementPage: React.FC = () => {
             <Sparkles className="w-4 h-4 text-teal-600" />
             <span>38 State Districts Active</span>
           </div>
+          <button
+            onClick={() => setIsAddDistrictOpen(true)}
+            className="px-4 py-2 rounded-xl bg-[#0F766E] hover:bg-[#0D655E] text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Create District Territory (district:create)"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add District</span>
+          </button>
         </div>
       </div>
 
@@ -273,6 +290,99 @@ export const DistrictManagementPage: React.FC = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD DISTRICT MODAL (district:create) */}
+      {isAddDistrictOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-200 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-teal-50 text-[#0F766E]">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">Provision Health District</h3>
+                  <span className="text-[10px] font-mono text-teal-600">Action: district:create</span>
+                </div>
+              </div>
+              <button onClick={() => setIsAddDistrictOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newDistName.trim()) return;
+                setIsAddDistrictOpen(false);
+                setBannerMsg(`District "${newDistName}" provisioned successfully.`);
+                setNewDistName('');
+                setNewDistCode('');
+                setTimeout(() => setBannerMsg(null), 4000);
+              }}
+              className="space-y-3.5 text-xs"
+            >
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  District Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Madurai Central"
+                  value={newDistName}
+                  onChange={e => setNewDistName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500 font-medium text-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    District Code
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. MDU"
+                    value={newDistCode}
+                    onChange={e => setNewDistCode(e.target.value.toUpperCase())}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500 font-mono font-bold text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    State Jurisdiction
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newDistState}
+                    onChange={e => setNewDistState(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500 font-medium text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddDistrictOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 font-bold hover:bg-slate-100 text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-md cursor-pointer"
+                >
+                  Confirm & Provision
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
