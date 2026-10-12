@@ -36,7 +36,9 @@ import {
   Calendar,
   History,
   ShieldAlert,
-  PlusCircle
+  PlusCircle,
+  MapPin,
+  Globe2
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -65,14 +67,14 @@ export interface CategoryConfig {
 
 // ================= SUPER ADMIN CATEGORY DEFINITION =================
 const SUPER_ADMIN_CATEGORIES: CategoryConfig[] = [
-  { id: 'DASHBOARD', title: 'Dashboard', icon: LayoutDashboard },
-  { id: 'COMMAND_CENTER', title: 'Command Center', icon: Radio },
-  { id: 'ORGANIZATION', title: 'Organization', icon: Network },
+  { id: 'DASHBOARD', title: 'Dashboard & Command', icon: LayoutDashboard },
+  { id: 'STATE_DISTRICT', title: 'Statewide Jurisdiction', icon: MapPin },
+  { id: 'FACILITIES', title: 'Facility Hierarchy', icon: Building2 },
+  { id: 'WORKFORCE', title: 'Workforce & IAM', icon: Users },
+  { id: 'PATIENT_CARE', title: 'Patient Care & Admissions', icon: HeartPulse },
+  { id: 'AUDIT_SECURITY', title: 'Audit & Governance', icon: ShieldCheck },
   { id: 'EMERGENCY', title: 'Emergency & Remote Care', icon: Siren },
-  { id: 'CLINICAL', title: 'Clinical Operations', icon: HeartPulse },
-  { id: 'QUALITY', title: 'Quality & Administration', icon: ShieldCheck },
-  { id: 'SETTINGS', title: 'Settings', icon: Sliders },
-  { id: 'USER_MENU', title: 'User Menu', icon: UserCheck }
+  { id: 'SETTINGS', title: 'Settings & Profile', icon: Sliders }
 ];
 
 // ================= HOSPITAL ADMIN CATEGORY DEFINITION =================
@@ -107,10 +109,49 @@ const HOSPITAL_ADMIN_DIRECT_ITEMS: MenuItem[] = [
 ];
 
 const HOSPITAL_ADMIN_CATEGORIES: CategoryConfig[] = [
-  { id: 'STAFF_MANAGEMENT', title: 'Staff Management', icon: Users },
-  { id: 'ICU_OPERATIONS', title: 'ICU Operations', icon: Layers },
-  { id: 'CLINICAL_OPERATIONS', title: 'Clinical Operations', icon: Activity },
-  { id: 'REPORTING_SECURITY', title: 'Reporting & Security', icon: ShieldCheck }
+  { id: 'FACILITY_OPERATIONS', title: 'Facility Hierarchy & Beds', icon: Building2 },
+  { id: 'STAFF_MANAGEMENT', title: 'Workforce & Rostering', icon: Users },
+  { id: 'PATIENT_CARE', title: 'Patient Flow & Admissions', icon: HeartPulse },
+  { id: 'ACCESS_GOVERNANCE', title: 'IAM & Access Governance', icon: ShieldCheck },
+  { id: 'REPORTING_SECURITY', title: 'Reporting & Forensic Audit', icon: FileSpreadsheet }
+];
+
+// ================= CHARGE NURSE CATEGORY DEFINITION =================
+const CHARGE_NURSE_DIRECT_ITEMS: MenuItem[] = [
+  {
+    id: 'nurse-cockpit',
+    label: 'Charge Nurse Cockpit',
+    path: '/nurse',
+    icon: LayoutDashboard,
+    badge: '18 PERMS',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+    category: 'DIRECT'
+  },
+  {
+    id: 'nurse-telemetry-live',
+    label: 'Bedside Telemetry Stream',
+    path: '/nurse/monitoring',
+    icon: Activity,
+    badge: 'LIVE',
+    badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+    category: 'DIRECT'
+  },
+  {
+    id: 'nurse-bed-grid',
+    label: 'Interactive Bed Map',
+    path: '/nurse/beds',
+    icon: Bed,
+    badge: '72 Beds',
+    badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+    category: 'DIRECT'
+  }
+];
+
+const CHARGE_NURSE_CATEGORIES: CategoryConfig[] = [
+  { id: 'NURSE_CLINICAL', title: 'Clinical Care & Telemetry', icon: Activity },
+  { id: 'NURSE_BEDS', title: 'Bed Allocation & ICU Units', icon: Bed },
+  { id: 'NURSE_PATIENTS', title: 'Patient Intake & Admissions', icon: HeartPulse },
+  { id: 'NURSE_SHIFT', title: 'Shift Roster & Handover', icon: Calendar }
 ];
 
 // ================= STANDARD PLATFORM CATEGORY DEFINITION (DOCTOR / NURSE / ADMIN) =================
@@ -162,86 +203,248 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // ================= EXACT SUPER ADMIN SPECIFICATION: TREE MATRIX =================
   const superAdminMenuItems: MenuItem[] = [
-    // DASHBOARD
+    // DASHBOARD & COMMAND
     {
       id: 'super-dashboard',
-      label: 'Overall ICU Overview',
+      label: 'Command Center Master Dashboard',
       path: '/dashboard/overview',
       icon: LayoutDashboard,
-      badge: 'Hospital',
+      badge: 'Directorate',
       badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
       category: 'DASHBOARD'
     },
-
-    // COMMAND CENTER
     {
       id: 'command-center',
-      label: 'ICU Command Center',
+      label: 'ICU Command Center (Live 24x7)',
       path: '/command-center',
       icon: Activity,
       badge: 'LIVE',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
-      category: 'COMMAND_CENTER'
+      category: 'DASHBOARD'
     },
     {
       id: 'devices-command',
-      label: 'Multi-Type Device Command Center',
+      label: 'Telemetry & Devices',
       path: '/devices',
       icon: Cpu,
-      category: 'COMMAND_CENTER'
+      category: 'DASHBOARD'
     },
 
-    // ORGANIZATION
+    // STATEWIDE JURISDICTION (state:*, district:*)
     {
-      id: 'org-hospitals',
-      label: 'Hospitals',
-      path: '/admin/hospitals',
-      icon: Building2,
-      badge: hospitals.length || 4,
-      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
-      category: 'ORGANIZATION'
+      id: 'state-districts',
+      label: 'District Network (38 Districts)',
+      path: '/admin/districts',
+      icon: MapPin,
+      badge: '38 Active',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+      category: 'STATE_DISTRICT'
     },
     {
-      id: 'org-doctors',
-      label: 'Doctors',
-      path: '/admin/doctor-management',
-      icon: Stethoscope,
-      badge: doctors.length || 6,
+      id: 'state-governance',
+      label: 'Governance Board 360',
+      path: '/governance-360',
+      icon: ShieldCheck,
+      badge: 'Statewide',
       badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-400/30',
-      category: 'ORGANIZATION'
+      category: 'STATE_DISTRICT'
     },
+
+    // FACILITY HIERARCHY (hospital:*, department:*, icu:*, bed:*)
     {
-      id: 'org-nurses',
-      label: 'Nurses',
-      path: '/admin/nurse-management',
-      icon: Users,
-      badge: nurses.length || 6,
+      id: 'org-parent-trusts',
+      label: 'Organizations',
+      path: '/admin/organizations',
+      icon: Network,
+      badge: 'TRUST',
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/30',
       category: 'ORGANIZATION'
     },
     {
-      id: 'org-patients',
-      label: 'Patients',
-      path: '/admin/patient-management',
-      icon: UserCheck,
-      badge: patients.length || 12,
-      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
+      id: 'org-state-hierarchy',
+      label: 'State Hierarchy',
+      path: '/admin/states',
+      icon: Globe2,
+      badge: 'GOV',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
       category: 'ORGANIZATION'
     },
     {
+      id: 'org-districts',
+      label: 'Districts',
+      path: '/admin/districts',
+      icon: MapPin,
+      badge: 38,
+      badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-400/30',
+      category: 'ORGANIZATION'
+    },
+    {
+      id: 'org-hospitals',
+      label: 'Hospitals Directory',
+      path: '/admin/hospitals',
+      icon: Building2,
+      badge: hospitals.length || 6,
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'FACILITIES'
+    },
+    {
+      id: 'org-departments',
+      label: 'Departments Management',
+      path: '/admin/departments',
+      icon: Network,
+      badge: '14 Active',
+      badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-400/30',
+      category: 'FACILITIES'
+    },
+    {
+      id: 'org-icus',
+      label: 'ICU Units Governance',
+      path: '/admin/hospital-icus',
+      icon: Layers,
+      badge: '18 Units',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'FACILITIES'
+    },
+    {
+      id: 'org-beds',
+      label: 'Bed Grid & Allocation',
+      path: '/admin/beds',
+      icon: Bed,
+      badge: 'Beds',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+      category: 'FACILITIES'
+    },
+
+    // WORKFORCE & IAM (user:*, role:*, staff:*)
+    {
       id: 'org-users',
-      label: 'User Management',
+      label: 'User Management & IAM',
       path: '/admin/users',
       icon: Users,
       badge: 'RBAC',
       badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
-      category: 'ORGANIZATION'
+      category: 'WORKFORCE'
+    },
+    {
+      id: 'org-roles',
+      label: 'Roles & RBAC Matrix',
+      path: '/admin/roles',
+      icon: ShieldCheck,
+      badge: 'Permissions',
+      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/30',
+      category: 'WORKFORCE'
+    },
+    {
+      id: 'org-doctors',
+      label: 'Doctors Directory',
+      path: '/admin/doctor-management',
+      icon: Stethoscope,
+      badge: doctors.length || 18,
+      badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-400/30',
+      category: 'WORKFORCE'
+    },
+    {
+      id: 'org-nurses',
+      label: 'Nurses Directory',
+      path: '/admin/nurse-management',
+      icon: Users,
+      badge: nurses.length || 36,
+      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/30',
+      category: 'WORKFORCE'
+    },
+    {
+      id: 'org-shifts',
+      label: 'Shift Rostering',
+      path: '/admin/hospital-shifts',
+      icon: Calendar,
+      category: 'WORKFORCE'
+    },
+
+    // PATIENT CARE & ADMISSIONS (patient:*, admission:*, clinical:*, order:*, medication:*)
+    {
+      id: 'org-patients',
+      label: 'Patient Registry',
+      path: '/admin/patient-management',
+      icon: UserCheck,
+      badge: patients.length || 42,
+      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
+      category: 'PATIENT_CARE'
+    },
+    {
+      id: 'org-admissions',
+      label: 'Admissions & Encounters',
+      path: '/admin/encounters',
+      icon: ClipboardList,
+      badge: 'Cases',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'PATIENT_CARE'
+    },
+    {
+      id: 'patient-monitoring',
+      label: 'Live Patient Telemetry',
+      path: '/live-monitoring',
+      icon: Activity,
+      badge: 'ECG/ART',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+      category: 'PATIENT_CARE'
+    },
+    {
+      id: 'orders',
+      label: 'Doctor Orders',
+      path: '/orders',
+      icon: ClipboardList,
+      category: 'PATIENT_CARE'
+    },
+    {
+      id: 'medications',
+      label: 'Medications (MAR)',
+      path: '/medications',
+      icon: HeartPulse,
+      badge: 'MAR',
+      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/30',
+      category: 'PATIENT_CARE'
+    },
+    {
+      id: 'alerts',
+      label: 'Alerts & Escalations',
+      path: '/alerts',
+      icon: Bell,
+      badge: 'Active',
+      badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-400/30',
+      category: 'PATIENT_CARE'
+    },
+
+    // AUDIT & GOVERNANCE (audit:*)
+    {
+      id: 'audit-logs',
+      label: 'Immutable Audit Logs',
+      path: '/admin/audit-logs',
+      icon: ShieldAlert,
+      badge: 'Forensic',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+      category: 'AUDIT_SECURITY'
+    },
+    {
+      id: 'custom-reports',
+      label: 'Hospital KPI Reports',
+      path: '/admin/hospital-reports',
+      icon: FileSpreadsheet,
+      badge: 'Reports',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'AUDIT_SECURITY'
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics & KPIs',
+      path: '/analytics',
+      icon: BarChart3,
+      category: 'AUDIT_SECURITY'
     },
 
     // EMERGENCY & REMOTE CARE
     {
       id: 'ambulance',
-      label: 'Ambulance Command',
+      label: 'Ambulance Command (GPS)',
       path: '/ambulance',
       icon: Truck,
       badge: 'GPS',
@@ -250,7 +453,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'video',
-      label: 'Video Command',
+      label: 'PTZ Video Surveillance',
       path: '/video',
       icon: Video,
       badge: 'PTZ Live',
@@ -259,142 +462,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'virtual-icu',
-      label: 'Virtual ICU',
+      label: 'Virtual ICU (Tele-Consult)',
       path: '/virtual-icu',
       icon: Layers,
       category: 'EMERGENCY'
     },
 
-    // CLINICAL OPERATIONS
-    {
-      id: 'patient-monitoring',
-      label: 'Patient Monitoring',
-      path: '/live-monitoring',
-      icon: Activity,
-      badge: 'ECG/ART',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
-      category: 'CLINICAL'
-    },
-    {
-      id: 'alerts',
-      label: 'Alerts & Escalation',
-      path: '/alerts',
-      icon: Bell,
-      badge: 'Active',
-      badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-400/30',
-      category: 'CLINICAL'
-    },
-    {
-      id: 'orders',
-      label: 'Orders',
-      path: '/orders',
-      icon: ClipboardList,
-      category: 'CLINICAL'
-    },
-    {
-      id: 'medications',
-      label: 'Medications',
-      path: '/medications',
-      icon: HeartPulse,
-      badge: 'MAR',
-      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/30',
-      category: 'CLINICAL'
-    },
-    {
-      id: 'nursing',
-      label: 'Nursing',
-      path: '/nursing',
-      icon: Stethoscope,
-      badge: 'Flowsheet',
-      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
-      category: 'CLINICAL'
-    },
-    {
-      id: 'handover',
-      label: 'Handover',
-      path: '/handover',
-      icon: FileText,
-      badge: 'ISBAR',
-      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
-      category: 'CLINICAL'
-    },
-
-    // QUALITY & ADMINISTRATION
-    {
-      id: 'governance',
-      label: 'Governance 360',
-      path: '/governance-360',
-      icon: ShieldCheck,
-      category: 'QUALITY'
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics & KPIs',
-      path: '/analytics',
-      icon: BarChart3,
-      category: 'QUALITY'
-    },
-    {
-      id: 'admin',
-      label: 'Admin / RBAC',
-      path: '/admin/roles',
-      icon: Settings,
-      category: 'QUALITY'
-    },
-
-    // SETTINGS
+    // SETTINGS & PROFILE
     {
       id: 'settings-device',
-      label: 'Device Management',
-      path: '/admin/settings',
-      icon: Cpu,
-      category: 'SETTINGS'
-    },
-    {
-      id: 'settings-integrations',
-      label: 'Integrations',
+      label: 'System Health & Settings',
       path: '/admin/settings',
       icon: Sliders,
       category: 'SETTINGS'
     },
     {
-      id: 'settings-health',
-      label: 'System Health',
-      path: '/admin/activity-logs',
-      icon: Activity,
-      category: 'SETTINGS'
-    },
-    {
-      id: 'settings-add-icu',
-      label: 'Add ICU',
-      path: '/admin/add-icu',
-      icon: PlusCircle,
-      badge: 'Add',
-      badgeColor: 'bg-emerald-500/25 text-emerald-200 border-emerald-400/40',
-      category: 'SETTINGS'
-    },
-
-    // USER MENU
-    {
       id: 'user-profile',
-      label: 'Profile',
+      label: 'Director Profile',
       path: '/doctor/profile',
       icon: User,
-      category: 'USER_MENU'
-    },
-    {
-      id: 'user-security',
-      label: 'Security',
-      path: '/admin/roles',
-      icon: ShieldCheck,
-      category: 'USER_MENU'
+      category: 'SETTINGS'
     },
     {
       id: 'user-logout',
-      label: 'Logout',
+      label: 'Sign Out Session',
       path: '/login',
       icon: LogOut,
-      category: 'USER_MENU',
+      category: 'SETTINGS',
       onClick: handleLogoutClick
     }
   ];
@@ -433,7 +527,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // ================= HOSPITAL ADMIN MENU SPECIFICATION =================
   const hospitalAdminMenuItems: MenuItem[] = [
-    // STAFF MANAGEMENT
+    // 1. FACILITY HIERARCHY & BEDS (hospital:*, department:*, icu:*, bed:*)
+    {
+      id: 'admin-departments',
+      label: 'Department Wings',
+      path: '/admin/departments',
+      icon: Building2,
+      badge: 'Wings',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'FACILITY_OPERATIONS'
+    },
+    {
+      id: 'admin-icu-units',
+      label: 'ICU Units',
+      path: '/admin/hospital-icus',
+      icon: Network,
+      badge: `${adminIcus?.length || 6} Units`,
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+      category: 'FACILITY_OPERATIONS'
+    },
+    {
+      id: 'admin-bed-map',
+      label: 'Interactive Bed Map',
+      path: '/admin/bed-map',
+      icon: Bed,
+      badge: `${adminBeds?.length || 72} Beds`,
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'FACILITY_OPERATIONS'
+    },
+    {
+      id: 'admin-add-icu',
+      label: 'Add ICU Unit',
+      path: '/admin/add-icu',
+      icon: PlusCircle,
+      badge: 'Add',
+      badgeColor: 'bg-emerald-500/25 text-emerald-200 border-emerald-400/40',
+      category: 'FACILITY_OPERATIONS'
+    },
+
+    // 2. WORKFORCE & ROSTERING (staff:create, read, update)
     {
       id: 'admin-doctor-roster',
       label: 'Doctor Roster',
@@ -454,7 +586,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'admin-shift-management',
-      label: 'Shift Management',
+      label: 'Shift Roster & Schedules',
       path: '/admin/hospital-shifts',
       icon: Calendar,
       badge: `${adminShifts?.length || 3} Shifts`,
@@ -462,62 +594,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       category: 'STAFF_MANAGEMENT'
     },
 
-    // ICU OPERATIONS
-    {
-      id: 'admin-icu-units',
-      label: 'ICU Units',
-      path: '/admin/hospital-icus',
-      icon: Network,
-      badge: `${adminIcus?.length || 6} Units`,
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
-      category: 'ICU_OPERATIONS'
-    },
-    {
-      id: 'admin-bed-map',
-      label: 'Interactive Bed Map',
-      path: '/admin/bed-map',
-      icon: Bed,
-      badge: `${adminBeds?.length || 72} Beds`,
-      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
-      category: 'ICU_OPERATIONS'
-    },
+    // 3. PATIENT FLOW & ADMISSIONS (patient:*, admission:*)
     {
       id: 'admin-patient-census',
-      label: 'Patient Census',
+      label: 'Patient Directory & Census',
       path: '/admin/hospital-patients',
       icon: Users,
       badge: `${patients?.length || 68} Census`,
       badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-400/30',
-      category: 'ICU_OPERATIONS'
+      category: 'PATIENT_CARE'
     },
-    {
-      id: 'admin-add-icu',
-      label: 'Add ICU',
-      path: '/admin/add-icu',
-      icon: PlusCircle,
-      badge: 'Add',
-      badgeColor: 'bg-emerald-500/25 text-emerald-200 border-emerald-400/40',
-      category: 'ICU_OPERATIONS'
-    },
-
-    // CLINICAL OPERATIONS
     {
       id: 'admin-encounters',
-      label: 'Encounters',
+      label: 'Admissions & Encounters',
       path: '/admin/encounters',
       icon: ClipboardList,
       badge: `${adminEncounters?.length || 18} Cases`,
       badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
-      category: 'CLINICAL_OPERATIONS'
-    },
-    {
-      id: 'admin-remarks',
-      label: 'Remarks & Audits',
-      path: '/admin/remarks',
-      icon: ShieldAlert,
-      badge: `${adminRemarks?.length || 12} Audits`,
-      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
-      category: 'CLINICAL_OPERATIONS'
+      category: 'PATIENT_CARE'
     },
     {
       id: 'admin-timeline',
@@ -526,38 +620,187 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: History,
       badge: 'Timeline',
       badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
-      category: 'CLINICAL_OPERATIONS'
+      category: 'PATIENT_CARE'
+    },
+    {
+      id: 'admin-remarks',
+      label: 'Locked Clinical Remarks',
+      path: '/admin/remarks',
+      icon: ShieldAlert,
+      badge: `${adminRemarks?.length || 12} Audits`,
+      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
+      category: 'PATIENT_CARE'
     },
 
-    // REPORTING & SECURITY
+    // 4. IAM & ACCESS GOVERNANCE (user:*, role:*, district:*, state:*)
+    {
+      id: 'admin-user-accounts',
+      label: 'User Directory & Accounts',
+      path: '/admin/users',
+      icon: UserCheck,
+      badge: 'IAM',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'ACCESS_GOVERNANCE'
+    },
+    {
+      id: 'admin-rbac-roles',
+      label: 'Roles & RBAC Matrix',
+      path: '/admin/roles',
+      icon: Settings,
+      badge: 'RBAC',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'ACCESS_GOVERNANCE'
+    },
+    {
+      id: 'admin-districts',
+      label: 'Districts & Jurisdiction',
+      path: '/admin/districts',
+      icon: MapPin,
+      badge: 'Districts',
+      badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-400/30',
+      category: 'ACCESS_GOVERNANCE'
+    },
+
+    // 5. REPORTING & FORENSIC AUDIT (audit:delete, reports)
     {
       id: 'admin-custom-reports',
-      label: 'Custom Reports',
+      label: 'Custom Date Reports',
       path: '/admin/custom-reports',
       icon: FileSpreadsheet,
-      badge: 'Reports',
+      badge: 'KPI',
       badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
       category: 'REPORTING_SECURITY'
     },
     {
       id: 'admin-activity-logs',
-      label: 'Activity Logs',
+      label: 'Audit Trail & Activity Logs',
       path: '/admin/activity-logs',
       icon: Activity,
-      badge: 'Live',
+      badge: 'Audit',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
-      category: 'REPORTING_SECURITY'
-    },
-    {
-      id: 'admin-rbac-roles',
-      label: 'Admin / RBAC',
-      path: '/admin/roles',
-      icon: Settings,
-      badge: 'RBAC',
-      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
       category: 'REPORTING_SECURITY'
     }
   ];
+
+  // ================= CHARGE NURSE MENU SPECIFICATION (18 AUTHORITATIVE PERMISSIONS) =================
+  const chargeNurseMenuItems: MenuItem[] = [
+    // 1. Clinical Care & Telemetry (clinical:create, clinical:read, clinical:update)
+    {
+      id: 'nurse-telemetry-stream',
+      label: 'Bedside Telemetry Stream',
+      path: '/nurse/monitoring',
+      icon: Activity,
+      badge: 'LIVE',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+      category: 'NURSE_CLINICAL'
+    },
+    {
+      id: 'nurse-vitals-flowsheet',
+      label: 'Vitals & Flowsheet Log',
+      path: '/nurse/monitoring',
+      icon: HeartPulse,
+      badge: 'Capture',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'NURSE_CLINICAL'
+    },
+    {
+      id: 'nurse-notes',
+      label: 'Shift Nursing Notes',
+      path: '/nurse/notes',
+      icon: FileText,
+      badge: 'Notes',
+      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/30',
+      category: 'NURSE_CLINICAL'
+    },
+    {
+      id: 'nurse-mar',
+      label: 'Medications MAR Log',
+      path: '/medications',
+      icon: Stethoscope,
+      badge: 'MAR',
+      badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-400/30',
+      category: 'NURSE_CLINICAL'
+    },
+
+    // 2. Bed Allocation & ICU Units (bed:create, bed:read, bed:update, icu:create, icu:read, icu:update)
+    {
+      id: 'nurse-bed-monitoring',
+      label: 'Bed Occupancy & Roster',
+      path: '/nurse/beds',
+      icon: Bed,
+      badge: `${adminBeds?.length || 72} Beds`,
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'NURSE_BEDS'
+    },
+    {
+      id: 'nurse-interactive-bed-map',
+      label: 'Interactive Bed Map',
+      path: '/admin/bed-map',
+      icon: Layers,
+      badge: 'Status',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+      category: 'NURSE_BEDS'
+    },
+    {
+      id: 'nurse-icu-units',
+      label: 'ICU Ward Units Overview',
+      path: '/admin/hospital-icus',
+      icon: Network,
+      badge: `${adminIcus?.length || 6} Units`,
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'NURSE_BEDS'
+    },
+
+    // 3. Patient Intake & Admissions (patient:*, admission:*)
+    {
+      id: 'nurse-assigned-patients',
+      label: 'Active Patient Census',
+      path: '/nurse/patients',
+      icon: Users,
+      badge: 'Roster',
+      badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-400/30',
+      category: 'NURSE_PATIENTS'
+    },
+    {
+      id: 'nurse-register-patient',
+      label: 'Register & Admit Patient',
+      path: '/nurse/add-patient',
+      icon: PlusCircle,
+      badge: 'Intake',
+      badgeColor: 'bg-emerald-500/25 text-emerald-200 border-emerald-400/40',
+      category: 'NURSE_PATIENTS'
+    },
+    {
+      id: 'nurse-admissions',
+      label: 'Admissions & Encounters',
+      path: '/admin/encounters',
+      icon: ClipboardList,
+      badge: `${adminEncounters?.length || 18} Cases`,
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'NURSE_PATIENTS'
+    },
+
+    // 4. Shift Roster & Handover
+    {
+      id: 'nurse-shift-handover',
+      label: 'Shift Handover Roster',
+      path: '/handover',
+      icon: Calendar,
+      badge: 'Shift',
+      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/30',
+      category: 'NURSE_SHIFT'
+    },
+    {
+      id: 'nurse-team-roster',
+      label: 'Nursing Staff Directory',
+      path: '/admin/hospital-nurses',
+      icon: HeartPulse,
+      badge: `${adminNurses?.length || 42} Staff`,
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'NURSE_SHIFT'
+    }
+  ];
+
 
   // ================= E-CLINIC MENU SPECIFICATION =================
   const eclinicDirectItems: MenuItem[] = [
@@ -684,8 +927,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (item.path === '/admin/remarks' && (location.pathname === '/admin/doctor-remarks' || location.pathname === '/admin/nurse-remarks')) return true;
     if (item.path === '/admin/timeline' && location.pathname === '/admin/patient-timeline') return true;
     if (item.path === '/admin/custom-reports' && location.pathname === '/admin/reports') return true;
-    if (item.path === '/admin/activity-logs' && location.pathname === '/admin/logs') return true;
-    if (item.path === '/dashboard/overview' && (location.pathname === '/dashboard' || location.pathname === '/dashboard/overview')) return true;
+    if (item.path === '/admin/departments' && location.pathname === '/admin/departments') return true;
+    if (item.path === '/admin/districts' && location.pathname === '/admin/districts') return true;
+    if (item.path === '/admin/beds' && (location.pathname === '/admin/beds' || location.pathname === '/admin/bed-map')) return true;
+    if (item.path === '/admin/audit-logs' && (location.pathname === '/admin/audit-logs' || location.pathname === '/admin/logs')) return true;
+    if (item.path === '/admin/encounters' && location.pathname === '/admin/encounters') return true;
+    if (item.path === '/nurse' && (location.pathname === '/nurse' || location.pathname === '/nurse/overview')) return true;
+    if (item.path === '/nurse/monitoring' && location.pathname === '/nurse/monitoring') return true;
+    if (item.path === '/nurse/beds' && location.pathname === '/nurse/beds') return true;
+    if (item.path === '/nurse/patients' && location.pathname === '/nurse/patients') return true;
+    if (item.path === '/nurse/notes' && location.pathname === '/nurse/notes') return true;
+    if (item.path === '/nurse/add-patient' && location.pathname === '/nurse/add-patient') return true;
+    if (item.path === '/dashboard/overview' && (location.pathname === '/dashboard' || location.pathname === '/dashboard/overview' || location.pathname === '/admin/super-dashboard')) return true;
     if (item.path === '/command-center' && location.pathname === '/') return true;
     return false;
   };
@@ -696,6 +949,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     (activeRole as string) === 'ADMIN' ||
     (activeRole as string) === 'HOSPITAL_ADMIN' ||
     (activeRole as string) === 'SYSTEM_ADMIN';
+  const isChargeNurseRole =
+    activeRole === 'CHARGE_NURSE' ||
+    activeRole === 'NURSE_LEAD' ||
+    (activeRole === 'NURSE' && currentUser?.email?.includes('charge'));
 
   let currentCategories: CategoryConfig[] = [];
   let currentMenuItems: MenuItem[] = [];
@@ -709,6 +966,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentCategories = HOSPITAL_ADMIN_CATEGORIES;
     currentMenuItems = hospitalAdminMenuItems;
     currentDirectItems = HOSPITAL_ADMIN_DIRECT_ITEMS;
+  } else if (isChargeNurseRole) {
+    currentCategories = CHARGE_NURSE_CATEGORIES;
+    currentMenuItems = chargeNurseMenuItems;
+    currentDirectItems = CHARGE_NURSE_DIRECT_ITEMS;
   } else if (isSuperAdminRole) {
     currentCategories = SUPER_ADMIN_CATEGORIES;
     currentMenuItems = superAdminMenuItems;

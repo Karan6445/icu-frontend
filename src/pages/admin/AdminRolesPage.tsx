@@ -54,9 +54,11 @@ import {
   ExternalLink,
   Sparkles,
 } from 'lucide-react';
+import { useRBAC } from '../../hooks/useRBAC';
 
 export const AdminRolesPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { hasPermission } = useRBAC();
   const {
     roles,
     permissions,

@@ -46,9 +46,11 @@ import { fetchHospitalsThunk } from '../../store/slices/hospitalSlice';
 import { fetchRolesThunk } from '../../store/slices/rolePermissionSlice';
 import { UserResponse, UserCreatePayload, UserUpdatePayload } from '../../api/userApi';
 import { validateEmail, validate10DigitPhone, clean10DigitPhone } from '../../utils/validation';
+import { useRBAC } from '../../hooks/useRBAC';
 
 export const UserManagementPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { hasPermission } = useRBAC();
   const { users, userHierarchy, isLoading, isActionLoading, error, successMessage } = useAppSelector(
     (state) => state.user
   );
@@ -571,22 +573,24 @@ export const UserManagementPage: React.FC = () => {
                             <Edit className="w-4 h-4" />
                           </button>
 
-                          {isDeleted ? (
-                            <button
-                              onClick={() => handleRestoreUser(user)}
-                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
-                              title="Restore Soft-Deleted Account"
-                            >
-                              <RotateCcw className="w-4 h-4" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleOpenDeleteModal(user)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
-                              title="Soft Delete User Account"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                          {hasPermission('user:delete') && (
+                            isDeleted ? (
+                              <button
+                                onClick={() => handleRestoreUser(user)}
+                                className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
+                                title="Restore Soft-Deleted Account"
+                              >
+                                <RotateCcw className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleOpenDeleteModal(user)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
+                                title="Soft Delete User Account"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )
                           )}
                         </div>
                       </td>

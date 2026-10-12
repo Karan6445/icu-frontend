@@ -201,6 +201,43 @@ export const hospitalAdminSlice = createSlice({
       }
     },
 
+    addBed: (
+      state,
+      action: PayloadAction<{ bedNumber: string; icuId: string; floorLocation?: string }>
+    ) => {
+      const targetIcu = state.icus.find(i => i.id === action.payload.icuId);
+      const newBed: HospitalAdminBedRecord = {
+        id: `BED-${Date.now()}`,
+        hospitalId: state.assignedHospitalId,
+        bedNumber: action.payload.bedNumber,
+        icuId: action.payload.icuId,
+        icuName: targetIcu ? targetIcu.name : 'Intensive Care Unit',
+        status: 'AVAILABLE',
+        telemetryStatus: 'ONLINE',
+        equipmentConnected: ['ECG Telemetry Monitor', 'Infusion Pump']
+      };
+      state.beds.unshift(newBed);
+
+      if (targetIcu) {
+        targetIcu.totalBeds += 1;
+        targetIcu.availableBeds += 1;
+      }
+
+      // Auto Log Action
+      const logItem: HospitalAdminActivityLog = {
+        id: `ACT-${Date.now()}`,
+        timestamp: new Date().toLocaleString(),
+        user: 'Hospital Administrator',
+        role: 'ADMIN',
+        action: 'BED_COMMISSIONING',
+        entity: newBed.bedNumber,
+        details: `Commissioned new telemetry bed ${newBed.bedNumber} in ${newBed.icuName}`,
+        hospitalId: state.assignedHospitalId,
+        ipAddress: '10.240.12.88'
+      };
+      state.activityLogs.unshift(logItem);
+    },
+
     updateShiftSchedule: (
       state,
       action: PayloadAction<{ shiftId: string; status: ShiftStatus }>
@@ -260,6 +297,7 @@ export const {
   addDoctor,
   addNurse,
   addICU,
+  addBed,
   updateBedStatus,
   updateShiftSchedule,
   setDateRangeFilter,

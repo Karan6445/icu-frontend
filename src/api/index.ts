@@ -8,6 +8,9 @@ export * from './deviceApi';
 export * from './hospitalApi';
 export * from './userApi';
 export * from './roleApi';
+export * from './stateApi';
+export * from './districtApi';
+export * from './organizationApi';
 export * from './tenantApi';
 export * from './departmentApi';
 export {

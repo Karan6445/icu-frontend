@@ -217,6 +217,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         navigate('/doctor');
         break;
       case 'NURSE':
+      case 'CHARGE_NURSE':
+      case 'NURSE_LEAD':
         navigate('/nurse');
         break;
       default:
