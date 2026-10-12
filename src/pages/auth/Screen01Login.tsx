@@ -24,7 +24,7 @@ import { SecurityApiService } from '../../services/securityApiService';
 import { SecurityUser } from '../../types/authSecurity';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { useAppDispatch } from '../../store/hooks';
-import { login, setActiveRole, SystemRole, fetchCurrentUserThunk } from '../../store/slices/authSlice';
+import { login, setActiveRole, setAuthenticatedUser, SystemRole, fetchCurrentUserThunk } from '../../store/slices/authSlice';
 import { AuthService } from '../../services/authService';
 
 export const Screen01Login: React.FC = () => {
@@ -135,7 +135,14 @@ export const Screen01Login: React.FC = () => {
         localStorage.setItem('selected_hospital_id', hospitalId || innerData?.hospital_id);
       }
 
-      await dispatch(fetchCurrentUserThunk());
+      // Synchronize authoritative user data, role, and permissions into Redux immediately
+      dispatch(setAuthenticatedUser(innerData));
+
+      // Attempt /auth/me in background if supported by the server
+      try {
+        await dispatch(fetchCurrentUserThunk());
+      } catch {}
+
       setIsLoading(false);
       const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/dashboard/overview';
       navigate(redirectUrl);
@@ -261,7 +268,13 @@ export const Screen01Login: React.FC = () => {
         localStorage.setItem('selected_hospital_id', innerData?.hospital_id || '');
       }
 
-      await dispatch(fetchCurrentUserThunk());
+      // Synchronize authoritative user data, role, and permissions into Redux immediately
+      dispatch(setAuthenticatedUser(innerData));
+
+      try {
+        await dispatch(fetchCurrentUserThunk());
+      } catch {}
+
       setIsLoading(false);
       const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/dashboard/overview';
       navigate(redirectUrl);
@@ -512,7 +525,7 @@ export const Screen01Login: React.FC = () => {
                     <span>Quick Demo Credentials</span>
                     <span className="text-teal-600 dark:text-teal-400 font-semibold">1-Click Fill</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
                     <button
                       type="button"
                       onClick={() => {
@@ -540,6 +553,20 @@ export const Screen01Login: React.FC = () => {
                         <span>🏥</span> <span>Hospital Admin</span>
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono truncate">hospital.admin@smarticu.org</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUsernameOrEmail('nurse.charge@smarticu.org');
+                        setPassword('ChargeNurse@2026!');
+                        if (hospitals[0]) setHospitalId(hospitals[0].id);
+                      }}
+                      className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 border border-slate-200 dark:border-slate-700 hover:border-teal-400 text-left transition-colors cursor-pointer"
+                    >
+                      <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                        <span>👩‍⚕️</span> <span>Charge Nurse</span>
+                      </div>
+                      <div className="text-[10px] text-teal-600 dark:text-teal-400 font-mono truncate">nurse.charge@smarticu.org</div>
                     </button>
                   </div>
                 </div>

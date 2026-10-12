@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { updateBedStatus } from '../../store/slices/hospitalAdminSlice';
+import { updateBedStatus, addBed } from '../../store/slices/hospitalAdminSlice';
 import { BedStatus } from '../../types/hospitalAdmin';
 import {
   Bed,
@@ -14,11 +14,14 @@ import {
   X,
   CheckCircle2,
   Settings,
-  ShieldCheck
+  ShieldCheck,
+  Plus
 } from 'lucide-react';
+import { useRBAC } from '../../hooks/useRBAC';
 
 export const HospitalAdminBedMapPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { hasPermission } = useRBAC();
   const { beds, icus, doctors, nurses, hospitalCode } = useAppSelector(state => state.hospitalAdmin);
 
   const [selectedIcu, setSelectedIcu] = useState('ALL');
@@ -26,6 +29,12 @@ export const HospitalAdminBedMapPage: React.FC = () => {
   const [selectedDoctor, setSelectedDoctor] = useState('ALL');
   const [selectedNurse, setSelectedNurse] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Add Bed Modal State
+  const [isAddBedModalOpen, setIsAddBedModalOpen] = useState(false);
+  const [newBedNumber, setNewBedNumber] = useState('');
+  const [newBedIcuId, setNewBedIcuId] = useState(icus[0]?.id || 'ICU-MICU');
+  const [bedToastMessage, setBedToastMessage] = useState<string | null>(null);
 
   // Sync selected ICU from URL query or global icuChanged event
   useEffect(() => {
@@ -83,6 +92,23 @@ export const HospitalAdminBedMapPage: React.FC = () => {
     setStatusReason('');
   };
 
+  const handleAddBedSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBedNumber) return;
+
+    dispatch(
+      addBed({
+        bedNumber: newBedNumber,
+        icuId: newBedIcuId
+      })
+    );
+
+    setBedToastMessage(`Bed ${newBedNumber} successfully commissioned into service!`);
+    setIsAddBedModalOpen(false);
+    setNewBedNumber('');
+    setTimeout(() => setBedToastMessage(null), 4000);
+  };
+
   const getStatusColorClass = (status: BedStatus) => {
     switch (status) {
       case 'AVAILABLE':
@@ -110,7 +136,7 @@ export const HospitalAdminBedMapPage: React.FC = () => {
               Hospital Bed Grid ({hospitalCode})
             </span>
             <span className="px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs font-mono font-bold rounded border border-emerald-300 dark:border-emerald-500/30">
-              48 Total ICU Beds
+              {beds.length} Total ICU Beds
             </span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white mt-1 flex items-center gap-2">
@@ -121,22 +147,47 @@ export const HospitalAdminBedMapPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Quick Summary Badges */}
-        <div className="flex items-center gap-2 text-xs font-mono flex-wrap">
-          <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 rounded-lg font-bold">
-            AVAILABLE: {beds.filter(b => b.status === 'AVAILABLE').length}
-          </span>
-          <span className="px-3 py-1 bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 rounded-lg font-bold">
-            OCCUPIED: {beds.filter(b => b.status === 'OCCUPIED').length}
-          </span>
-          <span className="px-3 py-1 bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 rounded-lg font-bold">
-            RESERVED: {beds.filter(b => b.status === 'RESERVED').length}
-          </span>
-          <span className="px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-500/40 rounded-lg font-bold">
-            MAINTENANCE: {beds.filter(b => b.status === 'MAINTENANCE').length}
-          </span>
+        {/* Actions & Summary */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {hasPermission('bed:create') && (
+            <button
+              onClick={() => setIsAddBedModalOpen(true)}
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-600 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Commission Bed</span>
+            </button>
+          )}
+
+          {/* Quick Summary Badges */}
+          <div className="flex items-center gap-2 text-xs font-mono flex-wrap">
+            <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 rounded-lg font-bold">
+              AVAILABLE: {beds.filter(b => b.status === 'AVAILABLE').length}
+            </span>
+            <span className="px-3 py-1 bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 rounded-lg font-bold">
+              OCCUPIED: {beds.filter(b => b.status === 'OCCUPIED').length}
+            </span>
+            <span className="px-3 py-1 bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 rounded-lg font-bold">
+              RESERVED: {beds.filter(b => b.status === 'RESERVED').length}
+            </span>
+            <span className="px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-500/40 rounded-lg font-bold">
+              MAINTENANCE: {beds.filter(b => b.status === 'MAINTENANCE').length}
+            </span>
+          </div>
         </div>
       </div>
+
+      {bedToastMessage && (
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 text-xs font-bold rounded-2xl flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{bedToastMessage}</span>
+          </div>
+          <button onClick={() => setBedToastMessage(null)} className="text-emerald-700 hover:text-emerald-900">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70 p-4 rounded-xl space-y-4 shadow-sm">
@@ -347,6 +398,83 @@ export const HospitalAdminBedMapPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ================= MODAL: COMMISSION NEW BED ================= */}
+      {isAddBedModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 rounded-xl">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                    Commission New Telemetry Bed
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Authorized under bed:create
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAddBedModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddBedSubmit} className="space-y-4 text-xs font-sans">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Bed Identifier / Code *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. MICU-13 or SICU-09"
+                  value={newBedNumber}
+                  onChange={e => setNewBedNumber(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Target ICU Unit *
+                </label>
+                <select
+                  value={newBedIcuId}
+                  onChange={e => setNewBedIcuId(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 cursor-pointer"
+                >
+                  {icus.map(i => (
+                    <option key={i.id} value={i.id}>{i.name} ({i.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddBedModalOpen(false)}
+                  className="px-4 py-2 text-slate-500 hover:text-slate-800 dark:hover:text-white font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-teal-700 hover:bg-teal-600 text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                >
+                  Commission Bed
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

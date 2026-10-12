@@ -45,9 +45,11 @@ import {
   ChevronRight,
   Filter
 } from 'lucide-react';
+import { useRBAC } from '../../hooks/useRBAC';
 
 export const AdminRolesPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { hasPermission } = useRBAC();
   const { roles, permissions, permissionsMatrix, searchQuery, isLoading, isActionLoading, error, successMessage } =
     useAppSelector((state) => state.rolePermission);
   const { hospitals } = useAppSelector((state) => state.hospital);
@@ -282,13 +284,15 @@ export const AdminRolesPage: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
-          <button
-            onClick={handleOpenCreateModal}
-            className="px-4 sm:px-5 py-3 bg-[#0F766E] hover:bg-[#0D655E] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Create Custom Role</span>
-          </button>
+          {hasPermission('role:create') && (
+            <button
+              onClick={handleOpenCreateModal}
+              className="px-4 sm:px-5 py-3 bg-[#0F766E] hover:bg-[#0D655E] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Create Custom Role</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -422,15 +426,17 @@ export const AdminRolesPage: React.FC = () => {
                     {Array.isArray(role.permissions) ? role.permissions.length : 0} Permissions Active
                   </span>
 
-                  <button
-                    onClick={() => handleOpenEditModal(role)}
-                    className="p-2 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950 rounded-xl transition-colors cursor-pointer"
-                    title="Edit Role Details & Permissions"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
+                  {hasPermission('role:update') && (
+                    <button
+                      onClick={() => handleOpenEditModal(role)}
+                      className="p-2 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950 rounded-xl transition-colors cursor-pointer"
+                      title="Edit Role Details & Permissions"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  )}
 
-                  {!role.is_system_role && (
+                  {!role.is_system_role && hasPermission('role:delete') && (
                     <button
                       onClick={() => setDeletingRole(role)}
                       className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-xl transition-colors cursor-pointer"

@@ -10,10 +10,12 @@ import { Building2, Stethoscope, HeartPulse, ShieldCheck, Activity } from 'lucid
 export const DashboardOverviewPage: React.FC = () => {
   const { activeRole } = useAppSelector(state => state.auth);
 
+  const isNurseRole = activeRole === 'NURSE' || activeRole === 'CHARGE_NURSE' || activeRole === 'NURSE_LEAD';
+
   // Set default view based on active role
   const [activeTab, setActiveTab] = useState<'HOSPITAL' | 'DOCTOR' | 'NURSE' | 'SUPER_ADMIN'>(() => {
     if (activeRole === 'DOCTOR') return 'DOCTOR';
-    if (activeRole === 'NURSE') return 'NURSE';
+    if (isNurseRole) return 'NURSE';
     if (activeRole === 'SUPER_ADMIN') return 'SUPER_ADMIN';
     return 'HOSPITAL';
   });
@@ -22,7 +24,7 @@ export const DashboardOverviewPage: React.FC = () => {
   useEffect(() => {
     if (activeRole === 'DOCTOR') {
       setActiveTab('DOCTOR');
-    } else if (activeRole === 'NURSE') {
+    } else if (isNurseRole) {
       setActiveTab('NURSE');
     } else if (activeRole === 'SUPER_ADMIN') {
       setActiveTab('SUPER_ADMIN');
@@ -41,7 +43,7 @@ export const DashboardOverviewPage: React.FC = () => {
           </span>
 
           {/* 1. Hospital Operations View - Removed from Nurse Dashboard */}
-          {activeRole !== 'NURSE' && (
+          {!isNurseRole && (
             <button
               onClick={() => setActiveTab('HOSPITAL')}
               className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
@@ -56,7 +58,7 @@ export const DashboardOverviewPage: React.FC = () => {
           )}
 
           {/* 2. Doctor Workstation View - Removed from Nurse Dashboard */}
-          {activeRole !== 'NURSE' && (
+          {!isNurseRole && (
             <button
               onClick={() => setActiveTab('DOCTOR')}
               className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
@@ -85,7 +87,7 @@ export const DashboardOverviewPage: React.FC = () => {
             </button>
           )}
 
-          {/* 4. Super Admin State Network (if super admin) */}
+          {/* 4. Super Admin Command Center (if super admin) */}
           {(activeRole === 'SUPER_ADMIN' || activeRole === 'ADMIN') && (
             <button
               onClick={() => setActiveTab('SUPER_ADMIN')}
@@ -96,7 +98,7 @@ export const DashboardOverviewPage: React.FC = () => {
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>State Network (38 Districts)</span>
+              <span>Command Center (Super Admin)</span>
             </button>
           )}
         </div>

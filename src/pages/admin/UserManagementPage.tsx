@@ -44,9 +44,11 @@ import {
 import { fetchHospitalsThunk } from '../../store/slices/hospitalSlice';
 import { UserResponse, UserCreatePayload, UserUpdatePayload } from '../../api/userApi';
 import { validateEmail, validate10DigitPhone, clean10DigitPhone } from '../../utils/validation';
+import { useRBAC } from '../../hooks/useRBAC';
 
 export const UserManagementPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { hasPermission } = useRBAC();
   const { users, userHierarchy, isLoading, isActionLoading, error, successMessage } = useAppSelector(
     (state) => state.user
   );
@@ -266,13 +268,15 @@ export const UserManagementPage: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
-          <button
-            onClick={handleOpenProvisionModal}
-            className="px-4 sm:px-5 py-3 bg-[#0F766E] hover:bg-[#0D655E] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4 stroke-[3]" />
-            <span>Provision New User</span>
-          </button>
+          {hasPermission('user:create') && (
+            <button
+              onClick={handleOpenProvisionModal}
+              className="px-4 sm:px-5 py-3 bg-[#0F766E] hover:bg-[#0D655E] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4 stroke-[3]" />
+              <span>Provision New User</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -508,30 +512,34 @@ export const UserManagementPage: React.FC = () => {
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          <button
-                            onClick={() => handleOpenUpdateModal(user)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-teal-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                            title="Update User Account"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
+                          {hasPermission('user:update') && (
+                            <button
+                              onClick={() => handleOpenUpdateModal(user)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-teal-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              title="Update User Account"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
 
-                          {isDeleted ? (
-                            <button
-                              onClick={() => handleRestoreUser(user)}
-                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
-                              title="Restore Soft-Deleted Account"
-                            >
-                              <RotateCcw className="w-4 h-4" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleOpenDeleteModal(user)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
-                              title="Soft Delete User Account"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                          {hasPermission('user:delete') && (
+                            isDeleted ? (
+                              <button
+                                onClick={() => handleRestoreUser(user)}
+                                className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
+                                title="Restore Soft-Deleted Account"
+                              >
+                                <RotateCcw className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleOpenDeleteModal(user)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
+                                title="Soft Delete User Account"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )
                           )}
                         </div>
                       </td>

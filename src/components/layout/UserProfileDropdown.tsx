@@ -11,7 +11,10 @@ import {
   Building2,
   Stethoscope,
   HeartPulse,
-  RefreshCw
+  RefreshCw,
+  LayoutDashboard,
+  Activity,
+  Users
 } from 'lucide-react';
 import { AuthService } from '../../services/authService';
 import { UserProfile, SystemRole, logoutUserThunk, logout as reduxLogout } from '../../store/slices/authSlice';
@@ -99,6 +102,15 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
           { label: 'Doctor Profile', path: '/doctor/profile', icon: User },
           { label: 'Shift Handover', path: '/handover', icon: RefreshCw },
           { label: 'Assigned Patients', path: '/doctor/patients', icon: Stethoscope }
+        ];
+      case 'CHARGE_NURSE':
+      case 'NURSE_LEAD':
+        return [
+          { label: 'Charge Nurse Cockpit', path: '/nurse', icon: LayoutDashboard },
+          { label: 'Bedside Telemetry Stream', path: '/nurse/monitoring', icon: Activity },
+          { label: 'Interactive Bed Map', path: '/nurse/beds', icon: HeartPulse },
+          { label: 'Patient Roster & Intake', path: '/nurse/patients', icon: Users },
+          { label: 'Shift Handover Roster', path: '/handover', icon: RefreshCw }
         ];
       case 'NURSE':
         return [

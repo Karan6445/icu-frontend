@@ -34,5 +34,6 @@ export * from './NurseManagementPage';
 export * from './PatientManagementPage';
 export * from './SuperAdminDashboardPage';
 export * from './UserManagementPage';
+export * from './AdminDepartmentsPage';
 export * from './StateManagementPage';
 export * from './OrganizationManagementPage';

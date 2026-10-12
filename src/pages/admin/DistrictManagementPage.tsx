@@ -27,7 +27,7 @@ import {
   Bed,
   Phone,
   Mail,
-  Hospital,
+  Hospital
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {

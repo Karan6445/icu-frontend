@@ -16,7 +16,7 @@ export interface ApiResponse<T> {
 
 export const API_BASE_URL =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
-  'http://10.51.4.18:8000';
+  'http://10.208.2.18:8000/';
 
 export class ApiClient {
   private baseURL: string;
