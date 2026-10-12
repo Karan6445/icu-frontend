@@ -40,26 +40,51 @@ import {
   GitFork,
   Globe,
   RefreshCw,
-  ChevronRight
+  ChevronRight,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clean10DigitPhone, validate10DigitPhone, format10DigitPhone, validateEmail } from '../../utils/validation';
 import { hospitalApi, HospitalHierarchyResponse } from '../../api/hospitalApi';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import {
+  fetchDepartmentsThunk,
+  createDepartmentThunk,
+  clearDepartmentError,
+  clearDepartmentSuccessMessage,
+} from '../../store/slices/departmentSlice';
 
 export const HospitalDetailsPage: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { hospitals, selectedHospitalId, doctors, nurses, icuBeds, patients, auditLogs } = useSelector(
+  const { hospitals, selectedHospitalId, doctors, nurses, icuBeds, patients, auditLogs } = useAppSelector(
     (state: RootState) => state.superAdmin
   );
+  const {
+    departments,
+    isLoading: isDeptLoading,
+    isActionLoading: isDeptActionLoading,
+    error: deptError,
+    successMessage: deptSuccessMessage,
+  } = useAppSelector((state: RootState) => state.department);
 
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'icu' | 'doctors' | 'nurses' | 'patients' | 'reports' | 'audit' | 'hierarchy'
+    'overview' | 'icu' | 'doctors' | 'nurses' | 'patients' | 'reports' | 'audit' | 'hierarchy' | 'departments'
   >('overview');
 
   const [hierarchyData, setHierarchyData] = useState<HospitalHierarchyResponse | null>(null);
   const [isHierarchyLoading, setIsHierarchyLoading] = useState(false);
   const [hierarchyError, setHierarchyError] = useState<string | null>(null);
+
+  // Departments State
+  const [showAddDeptModal, setShowAddDeptModal] = useState(false);
+  const [deptSearch, setDeptSearch] = useState('');
+  const [newDeptForm, setNewDeptForm] = useState({
+    code: '',
+    name: '',
+    head_of_department_id: '',
+  });
 
   const hospital = hospitals.find(h => h.id === selectedHospitalId) || hospitals[0];
 
@@ -73,6 +98,36 @@ export const HospitalDetailsPage: React.FC = () => {
         .finally(() => setIsHierarchyLoading(false));
     }
   }, [activeTab, hospital?.id]);
+
+  React.useEffect(() => {
+    if (activeTab === 'departments' && hospital?.id) {
+      dispatch(fetchDepartmentsThunk(hospital.id));
+    }
+  }, [activeTab, hospital?.id, dispatch]);
+
+  React.useEffect(() => {
+    if (deptSuccessMessage) {
+      const timer = setTimeout(() => dispatch(clearDepartmentSuccessMessage()), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [deptSuccessMessage, dispatch]);
+
+  const handleCreateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDeptForm.code.trim() || !newDeptForm.name.trim() || !hospital?.id) return;
+    const res = await dispatch(
+      createDepartmentThunk({
+        hospital_id: hospital.id,
+        code: newDeptForm.code.trim().toUpperCase(),
+        name: newDeptForm.name.trim(),
+        head_of_department_id: newDeptForm.head_of_department_id || null,
+      })
+    );
+    if (createDepartmentThunk.fulfilled.match(res)) {
+      setShowAddDeptModal(false);
+      setNewDeptForm({ code: '', name: '', head_of_department_id: '' });
+    }
+  };
 
   const [showAddDoctorModal, setShowAddDoctorModal] = useState(false);
   const [showAddNurseModal, setShowAddNurseModal] = useState(false);
@@ -275,7 +330,8 @@ export const HospitalDetailsPage: React.FC = () => {
           { id: 'patients', label: `5. Patients (${hospitalPatients.length})`, icon: Activity },
           { id: 'reports', label: '6. Reports Console', icon: FileText },
           { id: 'audit', label: '7. Audit Logs', icon: ShieldCheck },
-          { id: 'hierarchy', label: '8. Location Hierarchy', icon: GitFork }
+          { id: 'hierarchy', label: '8. Location Hierarchy', icon: GitFork },
+          { id: 'departments', label: `9. Clinical Departments (${departments.length})`, icon: Layers }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -913,6 +969,169 @@ export const HospitalDetailsPage: React.FC = () => {
         </div>
       )}
 
+      {/* TAB 9: CLINICAL DEPARTMENTS (GET /api/v1/departments & POST /api/v1/departments) */}
+      {activeTab === 'departments' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Notifications */}
+          {deptSuccessMessage && (
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between shadow-xs">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>{deptSuccessMessage}</span>
+              </div>
+              <button onClick={() => dispatch(clearDepartmentSuccessMessage())} className="text-emerald-700 hover:text-emerald-900">
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {deptError && (
+            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center justify-between shadow-xs">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600" />
+                <span>{deptError}</span>
+              </div>
+              <button onClick={() => dispatch(clearDepartmentError())} className="text-rose-700 hover:text-rose-900">
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Department Header & Controls */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-teal-50 text-[#0F766E] border border-teal-200 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5" />
+                  CLINICAL DEPARTMENTS
+                </span>
+                <span className="font-mono text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  GET /api/v1/departments?hospital_id={hospital.id}
+                </span>
+              </div>
+              <h3 className="text-lg font-black text-slate-900 mt-2">
+                Hospital Specialty & Clinical Departments
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Manage medical divisions, critical care units, and specialty departments enrolled for {hospital.name}.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                onClick={() => dispatch(fetchDepartmentsThunk(hospital.id))}
+                disabled={isDeptLoading}
+                className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer"
+                title="Refresh departments from backend"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isDeptLoading ? 'animate-spin text-[#0F766E]' : ''}`} />
+                <span>Sync Backend</span>
+              </button>
+
+              <button
+                onClick={() => setShowAddDeptModal(true)}
+                className="px-4 py-2.5 rounded-xl bg-[#0F766E] hover:bg-[#0D655E] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Department</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Search bar */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                placeholder="Search departments by code, name..."
+                value={deptSearch}
+                onChange={(e) => setDeptSearch(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#0F766E]"
+              />
+            </div>
+            <div className="text-xs text-slate-500 font-mono font-bold">
+              {departments.filter(d => !deptSearch || d.name.toLowerCase().includes(deptSearch.toLowerCase()) || d.code.toLowerCase().includes(deptSearch.toLowerCase())).length} of {departments.length} Units
+            </div>
+          </div>
+
+          {/* Departments Grid */}
+          {isDeptLoading ? (
+            <div className="py-16 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
+              <RefreshCw className="w-7 h-7 animate-spin text-[#0F766E]" />
+              <span className="text-xs font-bold">Querying clinical departments from backend...</span>
+            </div>
+          ) : departments.filter(d => !deptSearch || d.name.toLowerCase().includes(deptSearch.toLowerCase()) || d.code.toLowerCase().includes(deptSearch.toLowerCase())).length === 0 ? (
+            <div className="py-12 bg-white rounded-2xl border border-slate-200 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                <Layers className="w-6 h-6" />
+              </div>
+              <h4 className="font-bold text-slate-800 text-sm">No Clinical Departments Found</h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                No clinical departments registered for this hospital facility yet.
+              </p>
+              <button
+                onClick={() => setShowAddDeptModal(true)}
+                className="px-4 py-2 bg-[#0F766E] text-white rounded-xl text-xs font-bold"
+              >
+                Create First Clinical Department
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {departments
+                .filter(d => !deptSearch || d.name.toLowerCase().includes(deptSearch.toLowerCase()) || d.code.toLowerCase().includes(deptSearch.toLowerCase()))
+                .map((dept) => (
+                  <div
+                    key={dept.id}
+                    className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-teal-400 hover:shadow-md transition-all space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-[#0F766E] font-bold shrink-0">
+                          <Layers className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <span className="font-mono text-[10px] font-bold text-[#0F766E] uppercase tracking-wider block">
+                            {dept.code}
+                          </span>
+                          <h4 className="font-black text-slate-900 text-sm leading-tight">
+                            {dept.name}
+                          </h4>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                          dept.is_active
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}
+                      >
+                        {dept.is_active ? 'ACTIVE' : 'INACTIVE'}
+                      </span>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 text-xs text-slate-600 space-y-1.5 font-sans">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400 font-bold">Head of Dept:</span>
+                        <span className="font-medium text-slate-800">
+                          {dept.head_of_department_id ? (doctors.find(d => d.id === dept.head_of_department_id)?.name || dept.head_of_department_id) : 'Unassigned (Chief Director)'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-mono">
+                        <span className="text-slate-400 font-sans font-bold">Created:</span>
+                        <span className="text-slate-500">
+                          {dept.created_at ? new Date(dept.created_at).toLocaleDateString() : 'Active'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* REMARK UPDATE MODAL */}
       {remarkTarget && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1226,6 +1445,116 @@ export const HospitalDetailsPage: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* MODAL: CREATE CLINICAL DEPARTMENT (POST /api/v1/departments) */}
+      {showAddDeptModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white border border-teal-200 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl text-xs font-sans">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-teal-50 text-[#0F766E] border border-teal-200">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    Create Clinical Department
+                  </h3>
+                  <span className="font-mono text-[10px] text-teal-700 font-bold">
+                    POST /api/v1/departments
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddDeptModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateDepartment} className="space-y-4">
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">
+                  Hospital Facility *
+                </label>
+                <input
+                  type="text"
+                  disabled
+                  value={`${hospital.name} (${hospital.code})`}
+                  className="w-full bg-slate-100 border border-slate-300 rounded-xl p-2.5 font-bold text-slate-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">
+                  Department Code *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. DEPT-CCM, DEPT-CARD, DEPT-NEURO"
+                  value={newDeptForm.code}
+                  onChange={(e) => setNewDeptForm({ ...newDeptForm, code: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono uppercase text-slate-900 focus:outline-none focus:border-[#0F766E]"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Short unique alphanumeric identifier (e.g. DEPT-PULM)
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">
+                  Department Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Critical Care Medicine, Pulmonology ICU"
+                  value={newDeptForm.name}
+                  onChange={(e) => setNewDeptForm({ ...newDeptForm, name: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-[#0F766E]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">
+                  Head of Department (Optional)
+                </label>
+                <select
+                  value={newDeptForm.head_of_department_id}
+                  onChange={(e) => setNewDeptForm({ ...newDeptForm, head_of_department_id: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-[#0F766E]"
+                >
+                  <option value="">Unassigned (Select Doctor if available)...</option>
+                  {hospitalDoctors.map((doc) => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.name} - {doc.specialization}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddDeptModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isDeptActionLoading}
+                  className="px-5 py-2 bg-[#0F766E] hover:bg-[#0D655E] text-white rounded-xl font-bold flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  {isDeptActionLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
+                  <span>Create Department</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

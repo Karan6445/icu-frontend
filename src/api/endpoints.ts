@@ -17,6 +17,10 @@ export const API_ENDPOINTS = {
   PATIENTS: {
     BASE: '/api/v1/patients',
     DETAILS: (id: string) => `/api/v1/patients/${id}`,
+    UPDATE: (id: string) => `/api/v1/patients/${id}`,
+    DELETE: (id: string) => `/api/v1/patients/${id}`,
+    QR_RESOLVE: (token: string) => `/api/v1/patients/qr/${token}`,
+    QR_REGENERATE: (id: string) => `/api/v1/patients/${id}/qr/regenerate`,
     VITALS: (id: string) => `/api/v1/patients/${id}/vitals`,
     CLINICAL_NOTES: (id: string) => `/api/v1/patients/${id}/notes/clinical`,
     NURSING_NOTES: (id: string) => `/api/v1/patients/${id}/notes/nursing`,
@@ -59,5 +63,11 @@ export const API_ENDPOINTS = {
   PERMISSIONS: {
     BASE: '/api/v1/permissions',
     MATRIX: '/api/v1/permissions/matrix',
+  },
+  TENANTS: {
+    MEMBERSHIPS: '/api/v1/tenants/memberships',
+  },
+  DEPARTMENTS: {
+    BASE: '/api/v1/departments',
   },
 } as const;

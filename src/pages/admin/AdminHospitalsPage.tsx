@@ -20,17 +20,23 @@ import {
   ExternalLink,
   ChevronRight,
   Globe,
-  X
+  X,
+  Layers,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   fetchHospitalsThunk,
   createHospitalThunk,
+  fetchHospitalDetailsThunk,
   updateHospitalThunk,
   deleteHospitalThunk,
   fetchHospitalHierarchyThunk,
   assignDirectorToHospital,
   addDirector,
+  setSelectedHospital,
+  clearHospitalDetails,
+  clearHospitalSuccessMessage,
   Hospital,
 } from '../../store/slices/hospitalSlice';
 import { validateEmail } from '../../utils/validation';
@@ -39,7 +45,16 @@ import { API_BASE_URL } from '../../api/axios.config';
 
 export const AdminHospitalsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { hospitals, directors, isLoading, error } = useAppSelector(state => state.hospital);
+  const navigate = useNavigate();
+  const {
+    hospitals,
+    directors,
+    selectedHospitalDetails,
+    isLoading,
+    isDetailsLoading,
+    error,
+    successMessage,
+  } = useAppSelector(state => state.hospital);
   const { activeRole } = useAppSelector(state => state.auth);
 
   // Search & Filter
@@ -50,6 +65,7 @@ export const AdminHospitalsPage: React.FC = () => {
   const [isCreateHospitalOpen, setIsCreateHospitalOpen] = useState(false);
   const [isAssignDirectorOpen, setIsAssignDirectorOpen] = useState(false);
   const [isAddDirectorOpen, setIsAddDirectorOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
   // Hierarchy Modal State
   const [hierarchyData, setHierarchyData] = useState<HospitalHierarchyResponse | null>(null);
@@ -228,7 +244,13 @@ export const AdminHospitalsPage: React.FC = () => {
     }
   };
 
-  // 5. ASSIGN DIRECTOR
+  // 5. FETCH HOSPITAL DETAILS (GET /api/v1/hospitals/{id})
+  const handleViewDetails = (hosp: Hospital) => {
+    setDetailsModalOpen(true);
+    dispatch(fetchHospitalDetailsThunk(hosp.id));
+  };
+
+  // 6. ASSIGN DIRECTOR
   const handleAssignDirector = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedHospId || !selectedDirId) return;
@@ -517,16 +539,39 @@ export const AdminHospitalsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Card Actions (Hierarchy, Edit, Delete) */}
+                {/* Card Actions (Details, Hierarchy, Edit, Delete) */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => handleViewHierarchy(hosp)}
-                    className="px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/50 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    title="Inspect State & District hierarchy"
-                  >
-                    <GitFork className="w-3.5 h-3.5" />
-                    <span>Hierarchy</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleViewDetails(hosp)}
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Inspect Hospital Details (GET /api/v1/hospitals/{id})"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Details</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleViewHierarchy(hosp)}
+                      className="px-2.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/50 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Inspect State & District hierarchy (GET /api/v1/hospitals/{id}/hierarchy)"
+                    >
+                      <GitFork className="w-3.5 h-3.5" />
+                      <span>Hierarchy</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        dispatch(setSelectedHospital(hosp.id));
+                        navigate('/admin/hospital-details');
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Manage Clinical Departments (GET & POST /api/v1/departments)"
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Departments</span>
+                    </button>
+                  </div>
 
                   <div className="flex items-center gap-1.5">
                     <button
@@ -1169,6 +1214,184 @@ export const AdminHospitalsPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: HOSPITAL DETAILS (GET /api/v1/hospitals/{id}) ================= */}
+      {detailsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-teal-500/30 shadow-2xl p-6 space-y-4 font-sans max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-teal-50 dark:bg-teal-950/80 rounded-2xl text-teal-700 dark:text-teal-400">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    Hospital Facility Details
+                  </h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="font-mono text-[10px] text-teal-700 dark:text-teal-300 font-bold bg-teal-50 dark:bg-teal-950 px-1.5 py-0.5 rounded border border-teal-200 dark:border-teal-800">
+                      GET /api/v1/hospitals/{'{id}'}
+                    </span>
+                    <span className="text-[11px] text-slate-400">Live API Response</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setDetailsModalOpen(false);
+                  dispatch(clearHospitalDetails());
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {isDetailsLoading && (
+              <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-500">
+                <RefreshCw className="w-6 h-6 animate-spin text-teal-600" />
+                <span className="text-xs font-bold">Querying backend for facility details...</span>
+              </div>
+            )}
+
+            {!isDetailsLoading && selectedHospitalDetails && (
+              <div className="space-y-4 text-xs">
+                {/* Name & Code Header Card */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider block">
+                        CODE: {selectedHospitalDetails.code}
+                      </span>
+                      <h4 className="text-lg font-black text-slate-900 dark:text-white">
+                        {selectedHospitalDetails.name}
+                      </h4>
+                    </div>
+                    <span
+                      className={`px-2.5 py-1 rounded-full font-bold text-[10px] font-mono border ${
+                        selectedHospitalDetails.status === 'ACTIVE'
+                          ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                          : 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                      }`}
+                    >
+                      {selectedHospitalDetails.status}
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-500 truncate">
+                    UUID: {selectedHospitalDetails.id}
+                  </div>
+                </div>
+
+                {/* Location & Timezone Details */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      City & State
+                    </span>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                      <MapPin className="w-3.5 h-3.5 text-teal-600" />
+                      <span>{selectedHospitalDetails.city}, {selectedHospitalDetails.state}</span>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Timezone & Region
+                    </span>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                      <Globe className="w-3.5 h-3.5 text-teal-600" />
+                      <span>{selectedHospitalDetails.timezone || 'UTC'} ({selectedHospitalDetails.country_code || 'IND'})</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Contact Channels
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-800 dark:text-slate-200">
+                    <div className="flex items-center gap-2 font-mono">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{selectedHospitalDetails.contact_phone || selectedHospitalDetails.contactNumber || 'Not specified'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 truncate">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="truncate">{selectedHospitalDetails.contact_email || 'Not specified'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ICU Beds & Telemetry */}
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      ICU Capacity
+                    </span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="font-bold text-slate-900 dark:text-white">
+                        {selectedHospitalDetails.totalBeds} Total Beds
+                      </span>
+                      <span className="text-slate-400 font-mono">
+                        ({selectedHospitalDetails.availableBeds ?? 14} Available)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-bold text-[11px] text-emerald-600 dark:text-emerald-400">
+                    <Radio className="w-3.5 h-3.5 animate-pulse" />
+                    <span>{selectedHospitalDetails.is_command_center_enabled ? 'Command Center Enabled' : 'Local Only'}</span>
+                  </div>
+                </div>
+
+                {/* Modal Footer Actions */}
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setDetailsModalOpen(false);
+                        handleViewHierarchy(selectedHospitalDetails);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 font-bold flex items-center gap-1.5 cursor-pointer text-xs"
+                    >
+                      <GitFork className="w-3.5 h-3.5" />
+                      <span>View Hierarchy</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDetailsModalOpen(false);
+                        dispatch(setSelectedHospital(selectedHospitalDetails.id));
+                        navigate('/admin/hospital-details');
+                      }}
+                      className="px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold flex items-center gap-1.5 cursor-pointer text-xs"
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Clinical Departments</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDetailsModalOpen(false);
+                        handleOpenEdit(selectedHospitalDetails);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5 cursor-pointer text-xs"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                      <span>Edit Facility</span>
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setDetailsModalOpen(false);
+                      dispatch(clearHospitalDetails());
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer text-xs"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

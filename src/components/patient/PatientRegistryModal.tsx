@@ -17,6 +17,8 @@ import {
 import { PatientService } from '../../services/patientService';
 import { MOCK_USERS } from '../../data/mockData';
 import { ClinicalStatus, ReviewPriority, CodeStatus, Patient } from '../../types/icu';
+import { useAppDispatch } from '../../store/hooks';
+import { registerPatientThunk } from '../../store/slices/patientSlice';
 
 interface PatientRegistryModalProps {
   isOpen: boolean;
@@ -30,6 +32,8 @@ export const PatientRegistryModal: React.FC<PatientRegistryModalProps> = ({
   onPatientRegistered
 }) => {
   if (!isOpen) return null;
+
+  const dispatch = useAppDispatch();
 
   // Filter available Doctors and Nurses from MOCK_USERS
   const doctorsList = MOCK_USERS.filter((u) => u.role === 'DOCTOR' || u.role === 'SYSTEM_ADMIN');
@@ -107,6 +111,29 @@ export const PatientRegistryModal: React.FC<PatientRegistryModalProps> = ({
         temp: { value: temp, unit: '°C', timestamp: 'Just Now', source: 'Core Probe', quality: 'LIVE' },
       }
     });
+
+    // Sync with backend API
+    const nameParts = name.trim().split(' ');
+    const firstName = nameParts[0] || 'Patient';
+    const lastName = nameParts.slice(1).join(' ') || 'Record';
+    const genderEnum = gender === 'M' ? 'MALE' : gender === 'F' ? 'FEMALE' : 'OTHER';
+    const birthYear = new Date().getFullYear() - (Number(age) || 45);
+    const dob = `${birthYear}-01-15`;
+
+    dispatch(
+      registerPatientThunk({
+        data: {
+          mrn: mrn.trim(),
+          first_name: firstName,
+          last_name: lastName,
+          date_of_birth: dob,
+          gender: genderEnum as any,
+          blood_group: 'O_POSITIVE',
+          emergency_contact_phone: emergencyContact,
+          chronic_conditions: admittingDiagnosis ? [{ name: admittingDiagnosis }] : [],
+        },
+      })
+    );
 
     setSuccessNotice(`Patient ${newPatient.name} (${newPatient.mrn}) successfully admitted to ${newPatient.bedNumber} and assigned to ${newPatient.assignedClinician} & Nurse ${newPatient.assignedNurse}!`);
 

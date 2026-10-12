@@ -27,6 +27,8 @@ export interface Hospital {
   contact_phone?: string | null;
   contact_email?: string | null;
   contactNumber?: string | null;
+  timezone?: string;
+  country_code?: string;
   is_command_center_enabled?: boolean;
 }
 
@@ -44,9 +46,14 @@ interface HospitalState {
   hospitals: Hospital[];
   directors: Director[];
   selectedHospitalId: string | null;
+  selectedHospitalDetails: Hospital | null;
   selectedHospitalHierarchy: HospitalHierarchyResponse | null;
   isLoading: boolean;
+  isDetailsLoading: boolean;
+  isHierarchyLoading: boolean;
+  isActionLoading: boolean;
   error: string | null;
+  successMessage: string | null;
 }
 
 const INITIAL_DIRECTORS: Director[] = [
@@ -122,6 +129,8 @@ function facilityToHospital(f: HospitalFacility): Hospital {
     contact_phone: f.contact_phone || f.contactNumber,
     contact_email: f.contact_email,
     contactNumber: f.contact_phone || f.contactNumber,
+    timezone: f.timezone || 'UTC',
+    country_code: f.country_code || 'IND',
     is_command_center_enabled: f.is_command_center_enabled ?? true,
   };
 }
@@ -148,7 +157,16 @@ export const createHospitalThunk = createAsyncThunk(
   }
 );
 
-// 3. PATCH /api/v1/hospitals/{id} (Update Hospital)
+// 3. GET /api/v1/hospitals/{id} (Get Hospital Details)
+export const fetchHospitalDetailsThunk = createAsyncThunk(
+  'hospital/fetchHospitalDetails',
+  async (id: string) => {
+    const res = await hospitalApi.get(id);
+    return facilityToHospital(res.data);
+  }
+);
+
+// 4. PATCH /api/v1/hospitals/{id} (Update Hospital)
 export const updateHospitalThunk = createAsyncThunk(
   'hospital/updateHospitalThunk',
   async ({ id, payload }: { id: string; payload: HospitalUpdatePayload }) => {
@@ -157,7 +175,7 @@ export const updateHospitalThunk = createAsyncThunk(
   }
 );
 
-// 4. DELETE /api/v1/hospitals/{id} (Delete/Deactivate Hospital)
+// 5. DELETE /api/v1/hospitals/{id} (Delete/Deactivate Hospital)
 export const deleteHospitalThunk = createAsyncThunk(
   'hospital/deleteHospitalThunk',
   async (id: string) => {
@@ -166,7 +184,7 @@ export const deleteHospitalThunk = createAsyncThunk(
   }
 );
 
-// 5. GET /api/v1/hospitals/{id}/hierarchy (Location Hierarchy)
+// 6. GET /api/v1/hospitals/{id}/hierarchy (Location Hierarchy)
 export const fetchHospitalHierarchyThunk = createAsyncThunk(
   'hospital/fetchHierarchy',
   async (id: string) => {
@@ -179,9 +197,14 @@ const initialState: HospitalState = {
   hospitals: INITIAL_HOSPITALS,
   directors: INITIAL_DIRECTORS,
   selectedHospitalId: INITIAL_HOSPITALS[0]?.id || null,
+  selectedHospitalDetails: null,
   selectedHospitalHierarchy: null,
   isLoading: false,
+  isDetailsLoading: false,
+  isHierarchyLoading: false,
+  isActionLoading: false,
   error: null,
+  successMessage: null,
 };
 
 export const hospitalSlice = createSlice({
@@ -222,9 +245,18 @@ export const hospitalSlice = createSlice({
     clearHierarchy: (state) => {
       state.selectedHospitalHierarchy = null;
     },
+    clearHospitalDetails: (state) => {
+      state.selectedHospitalDetails = null;
+    },
+    clearHospitalError: (state) => {
+      state.error = null;
+    },
+    clearHospitalSuccessMessage: (state) => {
+      state.successMessage = null;
+    },
   },
   extraReducers: (builder) => {
-    // fetchHospitalsThunk
+    // 1. fetchHospitalsThunk (GET /api/v1/hospitals)
     builder.addCase(fetchHospitalsThunk.pending, (state) => {
       state.isLoading = true;
       state.error = null;
@@ -243,31 +275,94 @@ export const hospitalSlice = createSlice({
       state.error = action.error.message || 'Failed to load hospitals from backend';
     });
 
-    // createHospitalThunk
+    // 2. createHospitalThunk (POST /api/v1/hospitals)
+    builder.addCase(createHospitalThunk.pending, (state) => {
+      state.isActionLoading = true;
+      state.error = null;
+    });
     builder.addCase(createHospitalThunk.fulfilled, (state, action) => {
+      state.isActionLoading = false;
       state.hospitals.unshift(action.payload);
       state.selectedHospitalId = action.payload.id;
+      state.successMessage = `Hospital "${action.payload.name}" registered successfully.`;
+    });
+    builder.addCase(createHospitalThunk.rejected, (state, action) => {
+      state.isActionLoading = false;
+      state.error = action.error.message || 'Failed to register hospital facility';
     });
 
-    // updateHospitalThunk
-    builder.addCase(updateHospitalThunk.fulfilled, (state, action) => {
+    // 3. fetchHospitalDetailsThunk (GET /api/v1/hospitals/{id})
+    builder.addCase(fetchHospitalDetailsThunk.pending, (state) => {
+      state.isDetailsLoading = true;
+      state.error = null;
+    });
+    builder.addCase(fetchHospitalDetailsThunk.fulfilled, (state, action) => {
+      state.isDetailsLoading = false;
+      state.selectedHospitalDetails = action.payload;
       const idx = state.hospitals.findIndex((h) => h.id === action.payload.id);
       if (idx !== -1) {
         state.hospitals[idx] = { ...state.hospitals[idx], ...action.payload };
       }
     });
+    builder.addCase(fetchHospitalDetailsThunk.rejected, (state, action) => {
+      state.isDetailsLoading = false;
+      state.error = action.error.message || 'Failed to fetch hospital details';
+    });
 
-    // deleteHospitalThunk
+    // 4. updateHospitalThunk (PATCH /api/v1/hospitals/{id})
+    builder.addCase(updateHospitalThunk.pending, (state) => {
+      state.isActionLoading = true;
+      state.error = null;
+    });
+    builder.addCase(updateHospitalThunk.fulfilled, (state, action) => {
+      state.isActionLoading = false;
+      const idx = state.hospitals.findIndex((h) => h.id === action.payload.id);
+      if (idx !== -1) {
+        state.hospitals[idx] = { ...state.hospitals[idx], ...action.payload };
+      }
+      if (state.selectedHospitalDetails?.id === action.payload.id) {
+        state.selectedHospitalDetails = action.payload;
+      }
+      state.successMessage = `Hospital "${action.payload.name}" updated successfully.`;
+    });
+    builder.addCase(updateHospitalThunk.rejected, (state, action) => {
+      state.isActionLoading = false;
+      state.error = action.error.message || 'Failed to update hospital facility';
+    });
+
+    // 5. deleteHospitalThunk (DELETE /api/v1/hospitals/{id})
+    builder.addCase(deleteHospitalThunk.pending, (state) => {
+      state.isActionLoading = true;
+      state.error = null;
+    });
     builder.addCase(deleteHospitalThunk.fulfilled, (state, action) => {
+      state.isActionLoading = false;
       state.hospitals = state.hospitals.filter((h) => h.id !== action.payload);
       if (state.selectedHospitalId === action.payload) {
         state.selectedHospitalId = state.hospitals[0]?.id || null;
       }
+      if (state.selectedHospitalDetails?.id === action.payload) {
+        state.selectedHospitalDetails = null;
+      }
+      state.successMessage = 'Hospital facility deactivated successfully.';
+    });
+    builder.addCase(deleteHospitalThunk.rejected, (state, action) => {
+      state.isActionLoading = false;
+      state.error = action.error.message || 'Failed to deactivate hospital facility';
     });
 
-    // fetchHospitalHierarchyThunk
+    // 6. fetchHospitalHierarchyThunk (GET /api/v1/hospitals/{id}/hierarchy)
+    builder.addCase(fetchHospitalHierarchyThunk.pending, (state) => {
+      state.isHierarchyLoading = true;
+      state.error = null;
+    });
     builder.addCase(fetchHospitalHierarchyThunk.fulfilled, (state, action) => {
+      state.isHierarchyLoading = false;
       state.selectedHospitalHierarchy = action.payload;
+    });
+    builder.addCase(fetchHospitalHierarchyThunk.rejected, (state, action) => {
+      state.isHierarchyLoading = false;
+      state.error = action.error.message || 'Failed to load location hierarchy';
     });
   },
 });
@@ -278,6 +373,9 @@ export const {
   addDirector,
   setSelectedHospital,
   clearHierarchy,
+  clearHospitalDetails,
+  clearHospitalError,
+  clearHospitalSuccessMessage,
 } = hospitalSlice.actions;
 
 export default hospitalSlice.reducer;

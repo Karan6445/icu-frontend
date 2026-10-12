@@ -8,6 +8,11 @@ import {
   UserListParams,
   FALLBACK_USERS,
 } from '../../api/userApi';
+import {
+  tenantApi,
+  TenantMembershipCreate,
+  TenantMembershipResponse,
+} from '../../api/tenantApi';
 
 interface UserState {
   users: UserResponse[];
@@ -113,6 +118,19 @@ export const fetchUserHierarchyThunk = createAsyncThunk(
       return response.data;
     } catch (err: any) {
       return rejectWithValue(err.message || `Failed to fetch hierarchy for user ${id}`);
+    }
+  }
+);
+
+export const assignTenantMembershipThunk = createAsyncThunk(
+  'user/assignTenantMembership',
+  async (payload: TenantMembershipCreate, { dispatch, rejectWithValue }) => {
+    try {
+      const response = await tenantApi.assignTenantMembership(payload);
+      dispatch(fetchUsersThunk());
+      return response.data;
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to assign user to hospital tenant');
     }
   }
 );
@@ -265,6 +283,21 @@ export const userSlice = createSlice({
       .addCase(fetchUserHierarchyThunk.rejected, (state, action) => {
         state.isLoading = false;
         state.error = (action.payload as string) || 'Failed to fetch user hierarchy';
+      })
+
+      // Assign Tenant Membership (POST /api/v1/tenants/memberships)
+      .addCase(assignTenantMembershipThunk.pending, (state) => {
+        state.isActionLoading = true;
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(assignTenantMembershipThunk.fulfilled, (state, action) => {
+        state.isActionLoading = false;
+        state.successMessage = `Staff assigned to hospital tenant successfully (Badge: ${action.payload.badge_number || 'N/A'})`;
+      })
+      .addCase(assignTenantMembershipThunk.rejected, (state, action) => {
+        state.isActionLoading = false;
+        state.error = (action.payload as string) || 'Failed to assign user to hospital tenant';
       });
   },
 });

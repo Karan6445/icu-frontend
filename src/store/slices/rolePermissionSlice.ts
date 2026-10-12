@@ -11,6 +11,16 @@ import {
   FALLBACK_PERMISSIONS,
   normalizePermissionCode,
 } from '../../api/roleApi';
+import {
+  permissionApi,
+  FALLBACK_PERMISSIONS_MATRIX,
+  FALLBACK_PERMISSIONS_LIST,
+} from '../../api/permissionApi';
+import {
+  tenantApi,
+  TenantMembershipCreate,
+  TenantMembershipResponse,
+} from '../../api/tenantApi';
 
 export type PermissionCategory = 'Patients' | 'Beds' | 'Doctors' | 'Nurses' | 'Reports' | 'Settings';
 export type PermissionAction = 'View' | 'Create' | 'Edit' | 'Delete' | 'Export';
@@ -31,20 +41,26 @@ interface RolePermissionState {
   permissionsMatrix: ResourcePermissionsSummary[];
   selectedRole: RoleResponse | null;
   searchQuery: string;
+  selectedModuleFilter: string;
   isLoading: boolean;
   isActionLoading: boolean;
+  isPermissionsLoading: boolean;
+  isMatrixLoading: boolean;
   error: string | null;
   successMessage: string | null;
 }
 
 const initialState: RolePermissionState = {
   roles: FALLBACK_ROLES,
-  permissions: FALLBACK_PERMISSIONS,
-  permissionsMatrix: [],
+  permissions: FALLBACK_PERMISSIONS_LIST,
+  permissionsMatrix: FALLBACK_PERMISSIONS_MATRIX,
   selectedRole: null,
   searchQuery: '',
+  selectedModuleFilter: 'ALL',
   isLoading: false,
   isActionLoading: false,
+  isPermissionsLoading: false,
+  isMatrixLoading: false,
   error: null,
   successMessage: null,
 };
@@ -173,6 +189,19 @@ export const fetchPermissionsMatrixThunk = createAsyncThunk(
   }
 );
 
+export const assignTenantMembershipThunk = createAsyncThunk(
+  'rolePermission/assignTenantMembership',
+  async (payload: TenantMembershipCreate, { dispatch, rejectWithValue }) => {
+    try {
+      const res = await tenantApi.assignTenantMembership(payload);
+      dispatch(fetchRolesThunk());
+      return res.data;
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to assign user to hospital tenant');
+    }
+  }
+);
+
 // ------------------------------------------------------------------
 // Role & Permission Slice
 // ------------------------------------------------------------------
@@ -183,6 +212,9 @@ export const rolePermissionSlice = createSlice({
   reducers: {
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload;
+    },
+    setSelectedModuleFilter: (state, action: PayloadAction<string>) => {
+      state.selectedModuleFilter = action.payload;
     },
     setSelectedRole: (state, action: PayloadAction<RoleResponse | null>) => {
       state.selectedRole = action.payload;
@@ -383,20 +415,60 @@ export const rolePermissionSlice = createSlice({
         state.error = (action.payload as string) || 'Failed to revoke permission';
       })
 
-      // Fetch Permissions
+      // Fetch Permissions (GET /api/v1/permissions)
+      .addCase(fetchPermissionsThunk.pending, (state) => {
+        state.isPermissionsLoading = true;
+      })
       .addCase(fetchPermissionsThunk.fulfilled, (state, action) => {
-        state.permissions = action.payload;
+        state.isPermissionsLoading = false;
+        const payload = action.payload as any;
+        const list = Array.isArray(payload) ? payload : (payload?.data || []);
+        if (Array.isArray(list) && list.length > 0) {
+          state.permissions = list;
+        }
+      })
+      .addCase(fetchPermissionsThunk.rejected, (state, action) => {
+        state.isPermissionsLoading = false;
+        state.error = (action.payload as string) || 'Failed to fetch system permissions';
       })
 
-      // Fetch Permissions Matrix
+      // Fetch Permissions Matrix (GET /api/v1/permissions/matrix)
+      .addCase(fetchPermissionsMatrixThunk.pending, (state) => {
+        state.isMatrixLoading = true;
+      })
       .addCase(fetchPermissionsMatrixThunk.fulfilled, (state, action) => {
-        state.permissionsMatrix = action.payload;
+        state.isMatrixLoading = false;
+        const payload = action.payload as any;
+        const list = Array.isArray(payload) ? payload : (payload?.data || []);
+        if (Array.isArray(list) && list.length > 0) {
+          state.permissionsMatrix = list;
+        }
+      })
+      .addCase(fetchPermissionsMatrixThunk.rejected, (state, action) => {
+        state.isMatrixLoading = false;
+        state.error = (action.payload as string) || 'Failed to fetch permissions matrix';
+      })
+
+      // Assign Tenant Membership (POST /api/v1/tenants/memberships)
+      .addCase(assignTenantMembershipThunk.pending, (state) => {
+        state.isActionLoading = true;
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(assignTenantMembershipThunk.fulfilled, (state, action) => {
+        state.isActionLoading = false;
+        state.successMessage = `Staff successfully assigned to hospital tenant with role! (Badge: ${action.payload.badge_number || 'N/A'})`;
+      })
+      .addCase(assignTenantMembershipThunk.rejected, (state, action) => {
+        state.isActionLoading = false;
+        state.error = (action.payload as string) || 'Failed to assign user to hospital tenant';
       });
   },
 });
 
 export const {
   setSearchQuery,
+  setSelectedModuleFilter,
   setSelectedRole,
   clearRoleError,
   clearRoleSuccessMessage,

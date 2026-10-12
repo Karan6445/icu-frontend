@@ -13,6 +13,7 @@ import hospitalReducer from './slices/hospitalSlice';
 import superAdminReducer from './slices/superAdminSlice';
 import hospitalAdminReducer from './slices/hospitalAdminSlice';
 import userReducer from './slices/userSlice';
+import departmentReducer from './slices/departmentSlice';
 
 export const store = configureStore({
   reducer: {
@@ -30,6 +31,7 @@ export const store = configureStore({
     superAdmin: superAdminReducer,
     hospitalAdmin: hospitalAdminReducer,
     user: userReducer,
+    department: departmentReducer,
   }
 });
 

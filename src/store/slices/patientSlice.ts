@@ -1,4 +1,13 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import patientApi, {
+  PatientCreate,
+  PatientUpdate,
+  PatientResponse,
+  PatientDetailResponse,
+  PatientQRResponse,
+  PatientQRScanResponse,
+  PatientQueryParams,
+} from '../../api/patientApi';
 
 export interface RegistrationFormData {
   // Step 1: Personal Details
@@ -150,8 +159,19 @@ export interface PatientRecord {
   doctorHandoverUpdates?: DoctorHandoverUpdate[];
 }
 
-interface PatientState {
+export interface PatientState {
   patients: PatientRecord[];
+  apiPatients: PatientResponse[];
+  selectedPatientDetail: PatientDetailResponse | null;
+  scannedPatient: PatientQRScanResponse | null;
+  qrData: PatientQRResponse | null;
+  loading: boolean;
+  creating: boolean;
+  updating: boolean;
+  deleting: boolean;
+  qrLoading: boolean;
+  error: string | null;
+  successMessage: string | null;
   searchQuery: string;
   statusFilter: string;
   unitFilter: string;
@@ -459,13 +479,194 @@ const INITIAL_PATIENTS: PatientRecord[] = [
   }
 ];
 
+export function mapPatientResponseToRecord(p: PatientResponse, existingRecord?: PatientRecord): PatientRecord {
+  const age = p.date_of_birth
+    ? Math.max(0, new Date().getFullYear() - new Date(p.date_of_birth).getFullYear())
+    : existingRecord?.age || 45;
+  const fullName = `${p.first_name} ${p.middle_name ? p.middle_name + ' ' : ''}${p.last_name}`.trim();
+  const gender = p.gender === 'MALE' ? 'Male' : p.gender === 'FEMALE' ? 'Female' : 'Other';
+  const bloodMap: Record<string, string> = {
+    A_POSITIVE: 'A+',
+    A_NEGATIVE: 'A-',
+    B_POSITIVE: 'B+',
+    B_NEGATIVE: 'B-',
+    AB_POSITIVE: 'AB+',
+    AB_NEGATIVE: 'AB-',
+    O_POSITIVE: 'O+',
+    O_NEGATIVE: 'O-',
+    UNKNOWN: 'Unknown',
+  };
+  const bloodGroup = bloodMap[p.blood_group] || p.blood_group || 'O+';
+  const allergyStr = Array.isArray(p.allergies)
+    ? p.allergies.map((a: any) => (typeof a === 'string' ? a : a.name || a.allergy || JSON.stringify(a))).join(', ')
+    : '';
+  const conditionStr = Array.isArray(p.chronic_conditions)
+    ? p.chronic_conditions.map((c: any) => (typeof c === 'string' ? c : c.name || c.condition || JSON.stringify(c))).join(', ')
+    : '';
+
+  return {
+    id: p.id,
+    mrn: p.mrn,
+    name: fullName || existingRecord?.name || 'Patient',
+    age,
+    gender,
+    bloodGroup,
+    mobileNumber: p.primary_phone || existingRecord?.mobileNumber || '+91 98000 00000',
+    email: existingRecord?.email || 'patient@hospital.in',
+    bedNumber: existingRecord?.bedNumber || 'ICU-10',
+    unitName: existingRecord?.unitName || 'Medical ICU',
+    status: (existingRecord?.status || (p.status === 'DECEASED' ? 'CRITICAL' : 'STABLE')) as any,
+    reviewPriority: existingRecord?.reviewPriority || 'ROUTINE',
+    admissionTime: existingRecord?.admissionTime || p.created_at?.slice(0, 16).replace('T', ' ') || '2026-10-12 10:00',
+    admittingDiagnosis: existingRecord?.admittingDiagnosis || conditionStr || 'General Observation',
+    medicalHistory: conditionStr || existingRecord?.medicalHistory,
+    allergies: allergyStr || existingRecord?.allergies,
+    assignedClinician: existingRecord?.assignedClinician || 'Dr. Ananya Roy (Intensivist)',
+    assignedNurse: existingRecord?.assignedNurse || 'Nurse Priya Sharma',
+    department: existingRecord?.department || 'Medical ICU',
+    emergencyContactName: p.emergency_contact_name || existingRecord?.emergencyContactName || '',
+    emergencyContactNumber: p.emergency_contact_phone || existingRecord?.emergencyContactNumber || '',
+    relation: p.emergency_contact_relation || existingRecord?.relation || 'Spouse',
+    address: existingRecord?.address || {
+      country: 'India',
+      state: 'Bihar',
+      city: 'Patna',
+      addressLine: 'Hospital Ward',
+      pincode: '800001',
+    },
+    vitals: existingRecord?.vitals || {
+      hr: 82,
+      spo2: 98,
+      bpSystolic: 120,
+      bpDiastolic: 80,
+      map: 93,
+      rr: 16,
+      temp: 36.9,
+      quality: 'LIVE',
+      timestamp: new Date().toTimeString().slice(0, 8),
+    },
+    documents: existingRecord?.documents,
+    clinicalNotesHistory: existingRecord?.clinicalNotesHistory,
+    nursingNotesHistory: existingRecord?.nursingNotesHistory,
+    unifiedRemarks: existingRecord?.unifiedRemarks,
+    latestDoctorHandover: existingRecord?.latestDoctorHandover,
+    doctorHandoverUpdates: existingRecord?.doctorHandoverUpdates,
+  };
+}
+
+// ------------------------------------------
+// ASYNC THUNKS FOR PATIENTS & DEMOGRAPHICS
+// ------------------------------------------
+
+export const fetchPatientsThunk = createAsyncThunk<
+  PatientResponse[],
+  PatientQueryParams | undefined,
+  { rejectValue: string }
+>('patient/fetchPatients', async (params, { rejectWithValue }) => {
+  try {
+    const res = await patientApi.list(params);
+    return res.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message || 'Failed to fetch patients from server');
+  }
+});
+
+export const fetchPatientDetailsThunk = createAsyncThunk<
+  PatientDetailResponse,
+  string,
+  { rejectValue: string }
+>('patient/fetchPatientDetails', async (patientId, { rejectWithValue }) => {
+  try {
+    const res = await patientApi.getById(patientId);
+    return res.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message || 'Failed to fetch patient details');
+  }
+});
+
+export const registerPatientThunk = createAsyncThunk<
+  PatientResponse,
+  { data: PatientCreate; hospitalId?: string },
+  { rejectValue: string }
+>('patient/registerPatient', async ({ data, hospitalId }, { rejectWithValue }) => {
+  try {
+    const res = await patientApi.create(data, hospitalId);
+    return res.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message || 'Failed to register patient');
+  }
+});
+
+export const updatePatientDemographicsThunk = createAsyncThunk<
+  PatientResponse,
+  { patientId: string; data: PatientUpdate },
+  { rejectValue: string }
+>('patient/updateDemographics', async ({ patientId, data }, { rejectWithValue }) => {
+  try {
+    const res = await patientApi.update(patientId, data);
+    return res.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message || 'Failed to update patient demographics');
+  }
+});
+
+export const deletePatientThunk = createAsyncThunk<
+  string,
+  { patientId: string; reason?: string },
+  { rejectValue: string }
+>('patient/deletePatient', async ({ patientId, reason }, { rejectWithValue }) => {
+  try {
+    await patientApi.delete(patientId, reason);
+    return patientId;
+  } catch (err: any) {
+    return rejectWithValue(err?.message || 'Failed to delete patient');
+  }
+});
+
+export const resolvePatientQRThunk = createAsyncThunk<
+  PatientQRScanResponse,
+  string,
+  { rejectValue: string }
+>('patient/resolveQR', async (token, { rejectWithValue }) => {
+  try {
+    const res = await patientApi.resolveQR(token);
+    return res.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message || 'Failed to resolve patient wristband QR token');
+  }
+});
+
+export const regeneratePatientQRThunk = createAsyncThunk<
+  PatientQRResponse,
+  string,
+  { rejectValue: string }
+>('patient/regenerateQR', async (patientId, { rejectWithValue }) => {
+  try {
+    const res = await patientApi.regenerateQR(patientId);
+    return res.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.message || 'Failed to regenerate wristband QR');
+  }
+});
+
 const initialState: PatientState = {
   patients: INITIAL_PATIENTS,
+  apiPatients: [],
+  selectedPatientDetail: null,
+  scannedPatient: null,
+  qrData: null,
+  loading: false,
+  creating: false,
+  updating: false,
+  deleting: false,
+  qrLoading: false,
+  error: null,
+  successMessage: null,
   searchQuery: '',
   statusFilter: 'ALL',
   unitFilter: 'ALL',
   registrationStep: 1,
-  registrationForm: initialRegistrationForm
+  registrationForm: initialRegistrationForm,
 };
 
 export const patientSlice = createSlice({
@@ -799,8 +1000,166 @@ export const patientSlice = createSlice({
           remark: 'Incoming Doctor Update'
         });
       }
-    }
-  }
+    },
+    clearPatientError: (state) => {
+      state.error = null;
+    },
+    clearPatientSuccessMessage: (state) => {
+      state.successMessage = null;
+    },
+    clearScannedPatient: (state) => {
+      state.scannedPatient = null;
+    },
+    clearSelectedPatientDetail: (state) => {
+      state.selectedPatientDetail = null;
+    },
+    clearQrData: (state) => {
+      state.qrData = null;
+    },
+  },
+  extraReducers: (builder) => {
+    // 1. fetchPatientsThunk
+    builder
+      .addCase(fetchPatientsThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPatientsThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.apiPatients = action.payload || [];
+        if (action.payload && action.payload.length > 0) {
+          const liveRecords = action.payload.map((p) => {
+            const existing = state.patients.find((ep) => ep.id === p.id || ep.mrn === p.mrn);
+            return mapPatientResponseToRecord(p, existing);
+          });
+          const unmappedLocal = state.patients.filter(
+            (lp) => !action.payload.some((bp) => bp.id === lp.id || bp.mrn === lp.mrn)
+          );
+          state.patients = [...liveRecords, ...unmappedLocal];
+        }
+      })
+      .addCase(fetchPatientsThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch patients';
+      });
+
+    // 2. fetchPatientDetailsThunk
+    builder
+      .addCase(fetchPatientDetailsThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPatientDetailsThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedPatientDetail = action.payload;
+      })
+      .addCase(fetchPatientDetailsThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch patient details';
+      });
+
+    // 3. registerPatientThunk
+    builder
+      .addCase(registerPatientThunk.pending, (state) => {
+        state.creating = true;
+        state.error = null;
+      })
+      .addCase(registerPatientThunk.fulfilled, (state, action) => {
+        state.creating = false;
+        state.apiPatients.unshift(action.payload);
+        const newRec = mapPatientResponseToRecord(action.payload);
+        state.patients.unshift(newRec);
+        state.successMessage = `Patient ${action.payload.first_name} ${action.payload.last_name} registered successfully (MRN: ${action.payload.mrn})`;
+      })
+      .addCase(registerPatientThunk.rejected, (state, action) => {
+        state.creating = false;
+        state.error = action.payload || 'Failed to register patient';
+      });
+
+    // 4. updatePatientDemographicsThunk
+    builder
+      .addCase(updatePatientDemographicsThunk.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(updatePatientDemographicsThunk.fulfilled, (state, action) => {
+        state.updating = false;
+        const idx = state.apiPatients.findIndex((p) => p.id === action.payload.id);
+        if (idx !== -1) {
+          state.apiPatients[idx] = action.payload;
+        }
+        const pIdx = state.patients.findIndex((p) => p.id === action.payload.id);
+        if (pIdx !== -1) {
+          state.patients[pIdx] = mapPatientResponseToRecord(action.payload, state.patients[pIdx]);
+        }
+        if (state.selectedPatientDetail?.id === action.payload.id) {
+          state.selectedPatientDetail = { ...state.selectedPatientDetail, ...action.payload };
+        }
+        state.successMessage = `Patient ${action.payload.first_name} ${action.payload.last_name} demographics updated successfully.`;
+      })
+      .addCase(updatePatientDemographicsThunk.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload || 'Failed to update demographics';
+      });
+
+    // 5. deletePatientThunk
+    builder
+      .addCase(deletePatientThunk.pending, (state) => {
+        state.deleting = true;
+        state.error = null;
+      })
+      .addCase(deletePatientThunk.fulfilled, (state, action) => {
+        state.deleting = false;
+        state.apiPatients = state.apiPatients.filter((p) => p.id !== action.payload);
+        state.patients = state.patients.filter((p) => p.id !== action.payload);
+        if (state.selectedPatientDetail?.id === action.payload) {
+          state.selectedPatientDetail = null;
+        }
+        state.successMessage = 'Patient soft deleted successfully.';
+      })
+      .addCase(deletePatientThunk.rejected, (state, action) => {
+        state.deleting = false;
+        state.error = action.payload || 'Failed to delete patient';
+      });
+
+    // 6. resolvePatientQRThunk
+    builder
+      .addCase(resolvePatientQRThunk.pending, (state) => {
+        state.qrLoading = true;
+        state.error = null;
+      })
+      .addCase(resolvePatientQRThunk.fulfilled, (state, action) => {
+        state.qrLoading = false;
+        state.scannedPatient = action.payload;
+      })
+      .addCase(resolvePatientQRThunk.rejected, (state, action) => {
+        state.qrLoading = false;
+        state.error = action.payload || 'Invalid or inactive QR token';
+      });
+
+    // 7. regeneratePatientQRThunk
+    builder
+      .addCase(regeneratePatientQRThunk.pending, (state) => {
+        state.qrLoading = true;
+        state.error = null;
+      })
+      .addCase(regeneratePatientQRThunk.fulfilled, (state, action) => {
+        state.qrLoading = false;
+        state.qrData = action.payload;
+        if (state.selectedPatientDetail && state.selectedPatientDetail.id === action.payload.patient_id) {
+          state.selectedPatientDetail.qr_token = action.payload.qr_token;
+        }
+        const pIdx = state.patients.findIndex((p) => p.id === action.payload.patient_id);
+        if (pIdx !== -1) {
+          (state.patients[pIdx] as any).qr_token = action.payload.qr_token;
+        }
+        state.successMessage = 'Bedside wristband QR token regenerated successfully.';
+      })
+      .addCase(regeneratePatientQRThunk.rejected, (state, action) => {
+        state.qrLoading = false;
+        state.error = action.payload || 'Failed to regenerate wristband QR';
+      });
+  },
 });
 
 export const {
@@ -822,7 +1181,12 @@ export const {
   addNursingNote,
   updateVitals,
   updateDoctorShiftHandover,
-  addDoctorHandoverUpdate
+  addDoctorHandoverUpdate,
+  clearPatientError,
+  clearPatientSuccessMessage,
+  clearScannedPatient,
+  clearSelectedPatientDetail,
+  clearQrData,
 } = patientSlice.actions;
 
 export default patientSlice.reducer;

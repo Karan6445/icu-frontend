@@ -37,11 +37,13 @@ import {
   deleteUserThunk,
   restoreUserThunk,
   fetchUserHierarchyThunk,
+  assignTenantMembershipThunk,
   clearUserError,
   clearUserSuccessMessage,
   clearUserHierarchy,
 } from '../../store/slices/userSlice';
 import { fetchHospitalsThunk } from '../../store/slices/hospitalSlice';
+import { fetchRolesThunk } from '../../store/slices/rolePermissionSlice';
 import { UserResponse, UserCreatePayload, UserUpdatePayload } from '../../api/userApi';
 import { validateEmail, validate10DigitPhone, clean10DigitPhone } from '../../utils/validation';
 
@@ -51,6 +53,7 @@ export const UserManagementPage: React.FC = () => {
     (state) => state.user
   );
   const { hospitals } = useAppSelector((state) => state.hospital);
+  const { roles } = useAppSelector((state) => state.rolePermission);
   const { activeRole } = useAppSelector((state) => state.auth);
 
   // Filters & Search
@@ -65,6 +68,13 @@ export const UserManagementPage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isHierarchyModalOpen, setIsHierarchyModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
+  const [tenantMembershipForm, setTenantMembershipForm] = useState({
+    user_id: '',
+    hospital_id: '',
+    role_id: '',
+    badge_number: '',
+  });
 
   // Selected User for Actions
   const [activeUser, setActiveUser] = useState<UserResponse | null>(null);
@@ -99,6 +109,7 @@ export const UserManagementPage: React.FC = () => {
   useEffect(() => {
     dispatch(fetchUsersThunk({ include_deleted: includeDeleted }));
     dispatch(fetchHospitalsThunk());
+    dispatch(fetchRolesThunk());
   }, [dispatch, includeDeleted]);
 
   // Handle Notifications Auto-dismiss
@@ -231,6 +242,33 @@ export const UserManagementPage: React.FC = () => {
     await dispatch(fetchUserByIdThunk(user.id));
   };
 
+  const handleOpenTenantModal = (user?: UserResponse) => {
+    setTenantMembershipForm({
+      user_id: user?.id || (users[0]?.id || ''),
+      hospital_id: user?.hospital_id || (hospitals[0]?.id || ''),
+      role_id: roles[0]?.id || '',
+      badge_number: user?.employee_id || '',
+    });
+    setIsTenantModalOpen(true);
+  };
+
+  const handleAssignTenantSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenantMembershipForm.user_id || !tenantMembershipForm.hospital_id || !tenantMembershipForm.role_id) {
+      alert('Please select user, hospital facility, and role.');
+      return;
+    }
+    await dispatch(
+      assignTenantMembershipThunk({
+        user_id: tenantMembershipForm.user_id,
+        hospital_id: tenantMembershipForm.hospital_id,
+        role_id: tenantMembershipForm.role_id,
+        badge_number: tenantMembershipForm.badge_number ? tenantMembershipForm.badge_number.trim() : null,
+      })
+    );
+    setIsTenantModalOpen(false);
+  };
+
   const getHospitalName = (hId?: string | null) => {
     if (!hId) return 'Unassigned (Global)';
     const found = hospitals.find((h) => h.id === hId);
@@ -264,6 +302,15 @@ export const UserManagementPage: React.FC = () => {
             title="Refresh Users"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            onClick={() => handleOpenTenantModal()}
+            className="px-4 py-3 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-[#0F766E] dark:text-teal-400 border border-teal-200 dark:border-teal-800 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            title="Assign User to Hospital Tenant with Role (POST /api/v1/tenants/memberships)"
+          >
+            <Building2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Assign Tenant Membership</span>
           </button>
 
           <button
@@ -506,6 +553,14 @@ export const UserManagementPage: React.FC = () => {
                             title="View Details"
                           >
                             <Eye className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenTenantModal(user)}
+                            className="p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950 transition-colors"
+                            title="Assign to Hospital Tenant with Role (POST /api/v1/tenants/memberships)"
+                          >
+                            <Building2 className="w-4 h-4" />
                           </button>
 
                           <button
@@ -1146,6 +1201,127 @@ export const UserManagementPage: React.FC = () => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: ASSIGN USER TO TENANT WITH ROLE (POST /api/v1/tenants/memberships) ================= */}
+      {isTenantModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-bold">
+                    TENANT GOVERNANCE
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">POST /api/v1/tenants/memberships</span>
+                </div>
+                <h3 className="font-extrabold text-base text-slate-900 dark:text-white mt-1">
+                  Assign User to Hospital Tenant with Role
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsTenantModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAssignTenantSubmit} className="space-y-4 text-xs">
+              {/* User Select */}
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Target User Account *
+                </label>
+                <select
+                  value={tenantMembershipForm.user_id}
+                  onChange={(e) => setTenantMembershipForm({ ...tenantMembershipForm, user_id: e.target.value })}
+                  required
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-teal-600"
+                >
+                  <option value="">Select User...</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.full_name} ({u.email}) - Current: {u.role || 'Staff'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Hospital Facility Select */}
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Hospital Facility (Tenant) *
+                </label>
+                <select
+                  value={tenantMembershipForm.hospital_id}
+                  onChange={(e) => setTenantMembershipForm({ ...tenantMembershipForm, hospital_id: e.target.value })}
+                  required
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-teal-600"
+                >
+                  <option value="">Select Hospital Tenant...</option>
+                  {hospitals.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.name} {h.code ? `(${h.code})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Role Select */}
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Assigned Tenant Role *
+                </label>
+                <select
+                  value={tenantMembershipForm.role_id}
+                  onChange={(e) => setTenantMembershipForm({ ...tenantMembershipForm, role_id: e.target.value })}
+                  required
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-teal-600"
+                >
+                  <option value="">Select Role...</option>
+                  {roles.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({r.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Badge Number (Optional) */}
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  Badge Number / Hospital Employee ID (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={tenantMembershipForm.badge_number}
+                  onChange={(e) => setTenantMembershipForm({ ...tenantMembershipForm, badge_number: e.target.value })}
+                  placeholder="e.g. DOC-102, RN-55"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2.5 font-mono text-slate-900 dark:text-white focus:outline-none focus:border-teal-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsTenantModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isActionLoading}
+                  className="px-5 py-2 rounded-xl bg-[#0F766E] hover:bg-[#0D655E] text-white font-bold flex items-center gap-2 cursor-pointer"
+                >
+                  {isActionLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
+                  <span>Assign Membership</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

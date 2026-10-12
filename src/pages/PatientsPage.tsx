@@ -19,11 +19,14 @@ import { MOCK_PATIENTS } from '../data/mockData';
 import { PatientRegistryModal } from '../components/patient/PatientRegistryModal';
 import { NurseOnlyRegistrationNoticeModal } from '../components/patient/NurseOnlyRegistrationNoticeModal';
 import { ClinicalStatus } from '../types/icu';
-import { useAppSelector } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchPatientsThunk } from '../store/slices/patientSlice';
 
 export const PatientsPage: React.FC = () => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { activeRole } = useAppSelector(state => state.auth);
+  const { patients, loading } = useAppSelector(state => state.patient);
 
   const [isRegistryOpen, setIsRegistryOpen] = useState(false);
   const [isPolicyNoticeOpen, setIsPolicyNoticeOpen] = useState(false);
@@ -31,6 +34,10 @@ export const PatientsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | ClinicalStatus>('ALL');
   const [selectedUnit, setSelectedUnit] = useState('ALL');
+
+  React.useEffect(() => {
+    dispatch(fetchPatientsThunk());
+  }, [dispatch]);
 
   const handleRegisterClick = () => {
     if (activeRole === 'DOCTOR') {
@@ -40,8 +47,10 @@ export const PatientsPage: React.FC = () => {
     }
   };
 
+  const patientList = patients && patients.length > 0 ? patients : MOCK_PATIENTS;
+
   // Filter patients based on search and status
-  const filteredPatients = MOCK_PATIENTS.filter(patient => {
+  const filteredPatients = patientList.filter(patient => {
     const matchesSearch = 
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.mrn.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -55,10 +64,10 @@ export const PatientsPage: React.FC = () => {
   });
 
   // Count summaries
-  const totalCount = MOCK_PATIENTS.length;
-  const criticalCount = MOCK_PATIENTS.filter(p => p.status === 'CRITICAL').length;
-  const warningCount = MOCK_PATIENTS.filter(p => p.status === 'WARNING').length;
-  const stableCount = MOCK_PATIENTS.filter(p => p.status === 'STABLE').length;
+  const totalCount = patientList.length;
+  const criticalCount = patientList.filter(p => p.status === 'CRITICAL').length;
+  const warningCount = patientList.filter(p => (p as any).status === 'WARNING' || p.status === 'HIGH').length;
+  const stableCount = patientList.filter(p => p.status === 'STABLE').length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -251,15 +260,32 @@ export const PatientsPage: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <div>
                         <span className="text-[9px] text-slate-400 block">HR</span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{patient.vitals.hr.value}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {typeof (patient.vitals?.hr as any)?.value === 'number'
+                            ? (patient.vitals.hr as any).value
+                            : (patient.vitals?.hr ?? '--')}
+                        </span>
                       </div>
                       <div>
                         <span className="text-[9px] text-slate-400 block">BP</span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{patient.vitals.bpSystolic.value}/{patient.vitals.bpDiastolic.value}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {typeof (patient.vitals?.bpSystolic as any)?.value === 'number'
+                            ? (patient.vitals.bpSystolic as any).value
+                            : (patient.vitals?.bpSystolic ?? '--')}
+                          /
+                          {typeof (patient.vitals?.bpDiastolic as any)?.value === 'number'
+                            ? (patient.vitals.bpDiastolic as any).value
+                            : (patient.vitals?.bpDiastolic ?? '--')}
+                        </span>
                       </div>
                       <div>
                         <span className="text-[9px] text-slate-400 block">SpO2</span>
-                        <span className="font-bold text-teal-600 dark:text-teal-400">{patient.vitals.spo2.value}%</span>
+                        <span className="font-bold text-teal-600 dark:text-teal-400">
+                          {typeof (patient.vitals?.spo2 as any)?.value === 'number'
+                            ? (patient.vitals.spo2 as any).value
+                            : (patient.vitals?.spo2 ?? '--')}
+                          %
+                        </span>
                       </div>
                     </div>
                   </td>

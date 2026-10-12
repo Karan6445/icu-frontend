@@ -6,6 +6,7 @@ import {
   updateRegistrationForm,
   resetRegistrationForm,
   submitPatientRegistration,
+  registerPatientThunk,
   RegistrationFormData
 } from '../../store/slices/patientSlice';
 import {
@@ -78,7 +79,46 @@ export const PatientRegistrationWizard: React.FC<PatientRegistrationWizardProps>
   };
 
   const onFinalSubmit = () => {
+    // 1. Local redux update
     dispatch(submitPatientRegistration());
+
+    // 2. Sync to Backend API
+    const parts = (registrationForm.fullName || '').trim().split(' ');
+    const firstName = parts[0] || 'Patient';
+    const lastName = parts.slice(1).join(' ') || 'Record';
+    const genderMap: Record<string, any> = { Male: 'MALE', Female: 'FEMALE', Other: 'OTHER' };
+    const bloodMap: Record<string, any> = {
+      'A+': 'A_POSITIVE',
+      'A-': 'A_NEGATIVE',
+      'B+': 'B_POSITIVE',
+      'B-': 'B_NEGATIVE',
+      'AB+': 'AB_POSITIVE',
+      'AB-': 'AB_NEGATIVE',
+      'O+': 'O_POSITIVE',
+      'O-': 'O_NEGATIVE',
+    };
+    const birthYear = new Date().getFullYear() - (Number(registrationForm.age) || 40);
+    const dob = `${birthYear}-01-15`;
+
+    dispatch(
+      registerPatientThunk({
+        data: {
+          mrn: `MRN-${Math.floor(1000000 + Math.random() * 9000000)}`,
+          first_name: firstName,
+          last_name: lastName,
+          date_of_birth: dob,
+          gender: genderMap[registrationForm.gender] || 'MALE',
+          blood_group: bloodMap[registrationForm.bloodGroup] || 'O_POSITIVE',
+          primary_phone: registrationForm.mobileNumber || null,
+          emergency_contact_name: registrationForm.emergencyContactName || null,
+          emergency_contact_phone: registrationForm.emergencyContactNumber || null,
+          emergency_contact_relation: registrationForm.relation || null,
+          allergies: registrationForm.allergies ? [{ name: registrationForm.allergies }] : [],
+          chronic_conditions: registrationForm.medicalHistory ? [{ name: registrationForm.medicalHistory }] : [],
+        },
+      })
+    );
+
     setSubmittedSuccess(true);
     if (onComplete) {
       setTimeout(() => {

@@ -1,31 +1,15 @@
 import { apiClient, ApiResponse } from './axios.config';
 import { API_ENDPOINTS } from './endpoints';
+import {
+  permissionApi,
+  FALLBACK_PERMISSIONS_LIST,
+  FALLBACK_PERMISSIONS_MATRIX,
+  PermissionResponse,
+  ResourcePermissionOptions,
+  ResourcePermissionsSummary,
+} from './permissionApi';
 
-// ----------------------------------------------------
-// Type Definitions for RBAC & Roles (OpenAPI 3.1)
-// ----------------------------------------------------
-
-export interface PermissionResponse {
-  id: string;
-  code: string;
-  module: string;
-  description?: string | null;
-  action?: string | null;
-}
-
-export interface ResourcePermissionOptions {
-  create?: string;
-  read?: string;
-  update?: string;
-  delete?: string;
-}
-
-export interface ResourcePermissionsSummary {
-  resource: string;
-  name: string;
-  description?: string | null;
-  permissions: ResourcePermissionOptions;
-}
+export type { PermissionResponse, ResourcePermissionOptions, ResourcePermissionsSummary };
 
 export interface RoleResponse {
   id: string;
@@ -114,38 +98,7 @@ export function normalizePermissionCodes(codes?: string[] | null): string[] {
   return Array.from(new Set(normalized));
 }
 
-export const FALLBACK_PERMISSIONS: PermissionResponse[] = [
-  // Patient
-  { id: 'p-1', code: 'patient:create', module: 'Patient', action: 'Create', description: 'Admit and register new ICU patients' },
-  { id: 'p-2', code: 'patient:read', module: 'Patient', action: 'View', description: 'View ICU patient demographic and clinical summaries' },
-  { id: 'p-3', code: 'patient:update', module: 'Patient', action: 'Edit', description: 'Update patient clinical records and triage status' },
-  { id: 'p-4', code: 'patient:delete', module: 'Patient', action: 'Delete', description: 'Archive or discharge patient cases' },
-  // Bed
-  { id: 'p-5', code: 'bed:create', module: 'Bed', action: 'Create', description: 'Commission new ICU beds and telemetry slots' },
-  { id: 'p-6', code: 'bed:read', module: 'Bed', action: 'View', description: 'Monitor live ICU bed occupancy and status' },
-  { id: 'p-7', code: 'bed:update', module: 'Bed', action: 'Edit', description: 'Reassign beds and update telemetry device pairing' },
-  { id: 'p-8', code: 'bed:delete', module: 'Bed', action: 'Delete', description: 'Decommission ICU bed slots' },
-  // Clinical
-  { id: 'p-9', code: 'clinical:create', module: 'Clinical', action: 'Create', description: 'Create clinical encounters and chart notes' },
-  { id: 'p-10', code: 'clinical:read', module: 'Clinical', action: 'View', description: 'View clinical encounters, vitals, and notes' },
-  { id: 'p-11', code: 'clinical:update', module: 'Clinical', action: 'Edit', description: 'Update active clinical encounters and diagnoses' },
-  { id: 'p-12', code: 'clinical:delete', module: 'Clinical', action: 'Delete', description: 'Void erroneous clinical records' },
-  // Staff
-  { id: 'p-13', code: 'staff:create', module: 'Staff', action: 'Create', description: 'Register doctors, nurses and clinical staff' },
-  { id: 'p-14', code: 'staff:read', module: 'Staff', action: 'View', description: 'View clinical staff rosters and shift duty' },
-  { id: 'p-15', code: 'staff:update', module: 'Staff', action: 'Edit', description: 'Modify staff allocations and assignments' },
-  { id: 'p-16', code: 'staff:delete', module: 'Staff', action: 'Delete', description: 'Deactivate nursing and physician records' },
-  // Audit & Reports
-  { id: 'p-17', code: 'audit:create', module: 'Audit', action: 'Create', description: 'Generate custom mortality, LOS and audit reports' },
-  { id: 'p-18', code: 'audit:read', module: 'Audit', action: 'View', description: 'Access clinical analytics dashboards and audit logs' },
-  { id: 'p-19', code: 'audit:update', module: 'Audit', action: 'Edit', description: 'Customize KPI thresholds and compliance rules' },
-  { id: 'p-20', code: 'audit:delete', module: 'Audit', action: 'Delete', description: 'Purge old archived audit reports' },
-  // Hospital Settings & RBAC
-  { id: 'p-21', code: 'hospital:create', module: 'Hospital', action: 'Create', description: 'Configure telemetry integration endpoints' },
-  { id: 'p-22', code: 'hospital:read', module: 'Hospital', action: 'View', description: 'Inspect facility metadata, units, and security rules' },
-  { id: 'p-23', code: 'hospital:update', module: 'Hospital', action: 'Edit', description: 'Modify security policies, hospital branding and 2FA' },
-  { id: 'p-24', code: 'hospital:delete', module: 'Hospital', action: 'Delete', description: 'Reset facility configurations to default' },
-];
+export const FALLBACK_PERMISSIONS: PermissionResponse[] = FALLBACK_PERMISSIONS_LIST;
 
 export const FALLBACK_ROLES: RoleResponse[] = [
   {
@@ -532,30 +485,7 @@ export const roleApi = {
    * GET /api/v1/permissions
    */
   async listPermissions(module?: string): Promise<ApiResponse<PermissionResponse[]>> {
-    let fallback = [...localPermissionStore];
-    if (module) {
-      fallback = fallback.filter(p => p.module.toLowerCase() === module.toLowerCase());
-    }
-
-    try {
-      const res = await apiClient.get<PermissionResponse[]>(
-        API_ENDPOINTS.PERMISSIONS.BASE,
-        fallback,
-        module ? { params: { module } } : undefined
-      );
-      const normalized = extractData<PermissionResponse[]>(res.data);
-      if (Array.isArray(normalized)) {
-        localPermissionStore = normalized;
-        return { ...res, data: normalized };
-      }
-      return { ...res, data: fallback };
-    } catch (err) {
-      return {
-        data: fallback,
-        status: 200,
-        timestamp: new Date().toISOString(),
-      };
-    }
+    return permissionApi.listPermissions(module);
   },
 
   /**
@@ -563,111 +493,7 @@ export const roleApi = {
    * GET /api/v1/permissions/matrix
    */
   async getPermissionsMatrix(): Promise<ApiResponse<ResourcePermissionsSummary[]>> {
-    const fallbackMatrix: ResourcePermissionsSummary[] = [
-      {
-        resource: 'patient',
-        name: 'Patients & Demographics',
-        description: 'Patient identity, admission, vitals, and bed management',
-        permissions: {
-          create: 'patient:create',
-          read: 'patient:read',
-          update: 'patient:update',
-          delete: 'patient:delete',
-        },
-      },
-      {
-        resource: 'bed',
-        name: 'Beds & Infrastructure',
-        description: 'ICU Bed status, allocations, and telemetry hardware',
-        permissions: {
-          create: 'bed:create',
-          read: 'bed:read',
-          update: 'bed:update',
-          delete: 'bed:delete',
-        },
-      },
-      {
-        resource: 'staff',
-        name: 'Clinical Staff Governance',
-        description: 'Attending physician profiles and duty schedules',
-        permissions: {
-          create: 'staff:create',
-          read: 'staff:read',
-          update: 'staff:update',
-          delete: 'staff:delete',
-        },
-      },
-      {
-        resource: 'clinical',
-        name: 'Clinical Encounters & Notes',
-        description: 'Clinical progress notes, assessments, and chart records',
-        permissions: {
-          create: 'clinical:create',
-          read: 'clinical:read',
-          update: 'clinical:update',
-          delete: 'clinical:delete',
-        },
-      },
-      {
-        resource: 'order',
-        name: 'Medication & Orders',
-        description: 'Stat and routine prescriptions and laboratory orders',
-        permissions: {
-          create: 'order:create',
-          read: 'order:read',
-          update: 'order:update',
-          delete: 'order:delete',
-        },
-      },
-      {
-        resource: 'audit',
-        name: 'Audit Trails & Reports',
-        description: 'Clinical summaries, forensic audit logs, and compliance',
-        permissions: {
-          create: 'audit:create',
-          read: 'audit:read',
-          update: 'audit:update',
-          delete: 'audit:delete',
-        },
-      },
-      {
-        resource: 'hospital',
-        name: 'Hospital Settings',
-        description: 'Security policies, MFA, facility metadata, and integrations',
-        permissions: {
-          create: 'hospital:create',
-          read: 'hospital:read',
-          update: 'hospital:update',
-          delete: 'hospital:delete',
-        },
-      },
-      {
-        resource: 'user',
-        name: 'User Management',
-        description: 'User accounts, credentials, and access provisioning',
-        permissions: {
-          create: 'user:create',
-          read: 'user:read',
-          update: 'user:update',
-          delete: 'user:delete',
-        },
-      },
-    ];
-
-    try {
-      const res = await apiClient.get<ResourcePermissionsSummary[]>(
-        API_ENDPOINTS.PERMISSIONS.MATRIX,
-        fallbackMatrix
-      );
-      const normalized = extractData<ResourcePermissionsSummary[]>(res.data);
-      return { ...res, data: Array.isArray(normalized) ? normalized : fallbackMatrix };
-    } catch (err) {
-      return {
-        data: fallbackMatrix,
-        status: 200,
-        timestamp: new Date().toISOString(),
-      };
-    }
+    return permissionApi.getPermissionsMatrix();
   },
 };
 

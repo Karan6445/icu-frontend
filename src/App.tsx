@@ -325,6 +325,9 @@ export function App() {
             <Route path="/rbac" element={<AdminRolesPage />} />
             <Route path="/admin/roles-permissions" element={<AdminRolesPage />} />
             <Route path="/admin/role-management" element={<AdminRolesPage />} />
+            <Route path="/admin/permissions" element={<AdminRolesPage />} />
+            <Route path="/permissions" element={<AdminRolesPage />} />
+            <Route path="/admin/permissions/matrix" element={<AdminRolesPage />} />
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
             <Route path="/admin/export" element={<AdminExportPage />} />
             <Route path="/admin/monitoring" element={<LiveMonitoringPage />} />

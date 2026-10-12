@@ -242,7 +242,18 @@ export class ApiClient {
         throw err;
       }
 
-      const data = await response.json();
+      let data: any = null;
+      if (response.status !== 204) {
+        const text = await response.text();
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = text;
+          }
+        }
+      }
+
       return {
         data,
         status: response.status,
