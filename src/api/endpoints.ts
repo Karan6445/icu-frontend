@@ -60,4 +60,21 @@ export const API_ENDPOINTS = {
     BASE: '/api/v1/permissions',
     MATRIX: '/api/v1/permissions/matrix',
   },
+  STATES: {
+    BASE: '/api/v1/states',
+    DETAILS: (id: string) => `/api/v1/states/${id}`,
+    DISTRICTS: (id: string) => `/api/v1/states/${id}/districts`,
+    HIERARCHY: (id: string) => `/api/v1/states/${id}/hierarchy`,
+  },
+  DISTRICTS: {
+    BASE: '/api/v1/districts',
+    DETAILS: (id: string) => `/api/v1/districts/${id}`,
+    HOSPITALS: (id: string) => `/api/v1/districts/${id}/hospitals`,
+    HIERARCHY: (id: string) => `/api/v1/districts/${id}/hierarchy`,
+  },
+  ORGANIZATIONS: {
+    BASE: '/api/v1/organizations',
+  },
 } as const;
+
+

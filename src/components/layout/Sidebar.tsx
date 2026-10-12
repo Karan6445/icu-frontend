@@ -36,7 +36,9 @@ import {
   Calendar,
   History,
   ShieldAlert,
-  PlusCircle
+  PlusCircle,
+  Globe2,
+  MapPin
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -192,6 +194,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
 
     // ORGANIZATION
+    {
+      id: 'org-parent-trusts',
+      label: 'Organizations',
+      path: '/admin/organizations',
+      icon: Network,
+      badge: 'TRUST',
+      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/30',
+      category: 'ORGANIZATION'
+    },
+    {
+      id: 'org-state-hierarchy',
+      label: 'State Hierarchy',
+      path: '/admin/states',
+      icon: Globe2,
+      badge: 'GOV',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'ORGANIZATION'
+    },
+    {
+      id: 'org-districts',
+      label: 'Districts',
+      path: '/admin/districts',
+      icon: MapPin,
+      badge: 38,
+      badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-400/30',
+      category: 'ORGANIZATION'
+    },
     {
       id: 'org-hospitals',
       label: 'Hospitals',

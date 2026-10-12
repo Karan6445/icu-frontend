@@ -121,6 +121,8 @@ const PatientManagementPage = lazyLoad(() => import('./pages/admin/PatientManage
 const HospitalReportsPage = lazyLoad(() => import('./pages/admin/HospitalReportsPage'), 'HospitalReportsPage');
 const AuditLogsManagementPage = lazyLoad(() => import('./pages/admin/AuditLogsManagementPage'), 'AuditLogsManagementPage');
 const UserManagementPage = lazyLoad(() => import('./pages/admin/UserManagementPage'), 'UserManagementPage');
+const StateManagementPage = lazyLoad(() => import('./pages/admin/StateManagementPage'), 'StateManagementPage');
+const OrganizationManagementPage = lazyLoad(() => import('./pages/admin/OrganizationManagementPage'), 'OrganizationManagementPage');
 
 import { RoleRouteGuard } from './components/common/RoleRouteGuard';
 
@@ -274,6 +276,9 @@ export function App() {
 
             {/* SUPER ADMIN WORKFLOW ROUTES */}
             <Route path="/admin/super-dashboard" element={<SuperAdminDashboardPage />} />
+            <Route path="/admin/organizations" element={<OrganizationManagementPage />} />
+            <Route path="/admin/states" element={<StateManagementPage />} />
+            <Route path="/admin/state-hierarchy" element={<StateManagementPage />} />
             <Route path="/admin/districts" element={<DistrictManagementPage />} />
             <Route path="/admin/hospital-details" element={<HospitalDetailsPage />} />
             <Route path="/admin/icu-overview" element={<ICUOverviewPage />} />

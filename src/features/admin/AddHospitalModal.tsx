@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Building2, ShieldCheck, CheckCircle2 } from 'lucide-react';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addHospital } from '../../store/slices/superAdminSlice';
 import { createHospital } from '../../store/slices/hospitalSlice';
 import { hospitalApi } from '../../api/hospitalApi';
+import { fetchOrganizationsThunk } from '../../store/slices/organizationSlice';
 
 interface AddHospitalModalProps {
   isOpen: boolean;
@@ -27,6 +28,8 @@ export const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
 }) => {
   const dispatch = useAppDispatch();
 
+  const { organizations } = useAppSelector((state) => state.organization);
+  const [selectedOrgId, setSelectedOrgId] = useState('e1111111-1111-1111-1111-111111111111');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [district, setDistrict] = useState(defaultDistrict);
@@ -38,6 +41,18 @@ export const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (organizations.length === 0) {
+      dispatch(fetchOrganizationsThunk());
+    }
+  }, [dispatch, organizations.length]);
+
+  useEffect(() => {
+    if (organizations.length > 0 && !organizations.some((o) => o.id === selectedOrgId)) {
+      setSelectedOrgId(organizations[0].id);
+    }
+  }, [organizations, selectedOrgId]);
 
   if (!isOpen) return null;
 
@@ -61,7 +76,7 @@ export const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       const apiRes = await hospitalApi.create({
         name: name.trim(),
         code: generatedCode,
-        organization_id: 'e1111111-1111-1111-1111-111111111111',
+        organization_id: selectedOrgId || 'e1111111-1111-1111-1111-111111111111',
         timezone: 'UTC',
         country_code: 'IND',
         address: {
@@ -180,6 +195,32 @@ export const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Parent Healthcare Organization */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="font-bold text-slate-700 dark:text-slate-200 block">
+                Parent Healthcare Organization (Tenant) <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={selectedOrgId}
+                onChange={(e) => setSelectedOrgId(e.target.value)}
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-teal-500/50 rounded-xl text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              >
+                {organizations.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name} ({org.code}) — Tier: {org.tier}
+                  </option>
+                ))}
+                {organizations.length === 0 && (
+                  <option value="e1111111-1111-1111-1111-111111111111">
+                    Metro Health Care System (ORG-METRO-HEALTH)
+                  </option>
+                )}
+              </select>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Links this hospital node to the parent healthcare trust / organization in backend hierarchy.
+              </p>
+            </div>
+
             {/* Hospital Name */}
             <div className="space-y-1.5">
               <label className="font-bold text-slate-700 dark:text-slate-200 block">
