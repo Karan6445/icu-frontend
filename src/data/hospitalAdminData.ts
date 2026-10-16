@@ -14,7 +14,7 @@ import {
   StaffStatus
 } from '../types/hospitalAdmin';
 
-export const ASSIGNED_HOSPITAL_ID = 'ACH-01';
+export const ASSIGNED_HOSPITAL_ID = 'a324634e-b022-44ac-b633-448e14f35ad4';
 export const ASSIGNED_HOSPITAL_NAME = 'AIIMS Patna & Critical Care Center';
 export const ASSIGNED_HOSPITAL_CODE = 'AIIMS-PAT-01';
 
@@ -349,6 +349,24 @@ export const initialNursesData: HospitalAdminNurseRecord[] = [
 ];
 
 export const initialICUsData: HospitalAdminICURecord[] = [
+  {
+    id: '4d97e6e2-e4a4-41f0-95b2-428f7e80de88',
+    name: 'Medical Intensive Care Unit - East Wing',
+    code: 'MICU-EAST',
+    type: 'Medical Intensive Care',
+    totalBeds: 10,
+    occupiedBeds: 3,
+    availableBeds: 1,
+    reservedBeds: 0,
+    maintenanceBeds: 0,
+    offlineBeds: 0,
+    doctorLeadId: 'DOC-101',
+    doctorLeadName: 'Dr. Vikram Sethi',
+    nurseLeadId: 'NLEAD-5001',
+    nurseLeadName: 'Sunita Rao',
+    floorLocation: '4th Floor',
+    hospitalId: 'a324634e-b022-44ac-b633-448e14f35ad4',
+  },
   {
     id: 'ICU-MICU',
     name: 'Medical ICU 01 (MICU)',

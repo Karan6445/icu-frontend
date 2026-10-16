@@ -66,6 +66,7 @@ const OrdersPage = lazyLoad(() => import('./pages/clinical/OrdersPage'), 'Orders
 const CarePlanPage = lazyLoad(() => import('./pages/clinical/CarePlanPage'), 'CarePlanPage');
 const AmbulancePage = lazyLoad(() => import('./pages/clinical/AmbulancePage'), 'AmbulancePage');
 const VideoPage = lazyLoad(() => import('./pages/clinical/VideoPage'), 'VideoPage');
+const MeetingsHubPage = lazyLoad(() => import('./pages/clinical/MeetingsHubPage'), 'MeetingsHubPage');
 
 // HOSPITAL ADMIN COMMAND CENTER PAGES
 const HospitalAdminDashboardPage = lazyLoad(() => import('./pages/admin/HospitalAdminDashboardPage'), 'HospitalAdminDashboardPage');
@@ -81,6 +82,7 @@ const HospitalAdminRemarksPage = lazyLoad(() => import('./pages/admin/HospitalAd
 const HospitalAdminTimelinePage = lazyLoad(() => import('./pages/admin/HospitalAdminTimelinePage'), 'HospitalAdminTimelinePage');
 const HospitalAdminCustomReportsPage = lazyLoad(() => import('./pages/admin/HospitalAdminCustomReportsPage'), 'HospitalAdminCustomReportsPage');
 const HospitalAdminActivityLogsPage = lazyLoad(() => import('./pages/admin/HospitalAdminActivityLogsPage'), 'HospitalAdminActivityLogsPage');
+const HospitalAdminStaffPage = lazyLoad(() => import('./pages/admin/HospitalAdminStaffPage'), 'HospitalAdminStaffPage');
 
 // ADMIN WORKFLOW PAGES
 const AdminRolesPage = lazyLoad(() => import('./pages/admin/AdminRolesPage'), 'AdminRolesPage');
@@ -109,6 +111,8 @@ const NurseProfilePage = lazyLoad(() => import('./pages/nurse/NurseProfilePage')
 // OTHER WORKFLOW PAGES
 const AdminHospitalsPage = lazyLoad(() => import('./pages/admin/AdminHospitalsPage'), 'AdminHospitalsPage');
 const PatientTimelinePage = lazyLoad(() => import('./pages/PatientTimelinePage'), 'PatientTimelinePage');
+const IcuOperationsPage = lazyLoad(() => import('./pages/IcuOperationsPage'), 'IcuOperationsPage');
+const EmergencyCodeBluePage = lazyLoad(() => import('./pages/EmergencyCodeBluePage'), 'EmergencyCodeBluePage');
 
 // SUPER ADMIN PAGES
 const SuperAdminDashboardPage = lazyLoad(() => import('./pages/admin/SuperAdminDashboardPage'), 'SuperAdminDashboardPage');
@@ -261,7 +265,12 @@ export function App() {
             <Route path="/care-plan" element={<CarePlanPage />} />
             <Route path="/ambulance" element={<AmbulancePage />} />
             <Route path="/video" element={<VideoPage />} />
+            <Route path="/meetings" element={<MeetingsHubPage />} />
+            <Route path="/tele-icu" element={<MeetingsHubPage />} />
+            <Route path="/tele-icu/meetings" element={<MeetingsHubPage />} />
             <Route path="/alerts" element={<AlertCenterPage />} />
+            <Route path="/notifications" element={<AlertCenterPage />} />
+            <Route path="/clinical/notifications" element={<AlertCenterPage />} />
             <Route path="/incidents" element={<IncidentsPage />} />
             <Route path="/risks" element={<RisksPage />} />
             <Route path="/audits" element={<AuditLogsPage />} />
@@ -274,6 +283,13 @@ export function App() {
             <Route path="/patient/timeline" element={<PatientTimelinePage />} />
             <Route path="/patient/:patientId/timeline" element={<PatientTimelinePage />} />
             <Route path="/handover" element={<ShiftHandoverPage />} />
+            <Route path="/operations" element={<IcuOperationsPage />} />
+            <Route path="/operations/rounds" element={<IcuOperationsPage />} />
+            <Route path="/operations/handovers" element={<IcuOperationsPage />} />
+            <Route path="/operations/nursing-actions" element={<IcuOperationsPage />} />
+            <Route path="/emergency" element={<EmergencyCodeBluePage />} />
+            <Route path="/emergency/code-blue" element={<EmergencyCodeBluePage />} />
+            <Route path="/code-blue" element={<EmergencyCodeBluePage />} />
 
             {/* SUPER ADMIN WORKFLOW ROUTES */}
             <Route path="/admin/super-dashboard" element={<SuperAdminDashboardPage />} />
@@ -289,6 +305,9 @@ export function App() {
             <Route path="/admin/patient-management" element={<PatientManagementPage />} />
             <Route path="/admin/hospital-reports" element={<HospitalReportsPage />} />
             <Route path="/admin/audit-logs" element={<AuditLogsManagementPage />} />
+            <Route path="/admin/audit" element={<AuditLogsManagementPage />} />
+            <Route path="/admin/activity-logs" element={<AuditLogsManagementPage />} />
+            <Route path="/audit-logs" element={<AuditLogsManagementPage />} />
             <Route path="/admin/users" element={<UserManagementPage />} />
             <Route path="/admin/user-management" element={<UserManagementPage />} />
 
@@ -305,6 +324,8 @@ export function App() {
             <Route path="/admin/nurse-leads" element={<HospitalAdminNursesPage />} />
             <Route path="/admin/hospital-shifts" element={<HospitalAdminShiftsPage />} />
             <Route path="/admin/shifts" element={<HospitalAdminShiftsPage />} />
+            <Route path="/admin/hospital-staff" element={<HospitalAdminStaffPage />} />
+            <Route path="/admin/staff" element={<HospitalAdminStaffPage />} />
             <Route path="/admin/hospital-icus" element={<HospitalAdminICUPage />} />
             <Route path="/admin/icu-management" element={<HospitalAdminICUPage />} />
             <Route path="/admin/add-icu" element={<HospitalAdminICUPage />} />

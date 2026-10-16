@@ -120,8 +120,12 @@ export const Screen02HospitalSelector: React.FC = () => {
       // Store selected ICU in localStorage/session
       localStorage.setItem('selected_icu_id', icu.id);
       localStorage.setItem('selected_icu_name', icu.name);
-      localStorage.setItem('selected_hospital_id', selectedHospital?.id || 'HOSP-01');
-      localStorage.setItem('selected_hospital_name', selectedHospital?.name || 'PMCH');
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const validHosp = selectedHospital?.id && UUID_REGEX.test(selectedHospital.id)
+        ? selectedHospital.id
+        : 'a324634e-b022-44ac-b633-448e14f35ad4';
+      localStorage.setItem('selected_hospital_id', validHosp);
+      localStorage.setItem('selected_hospital_name', selectedHospital?.name || 'AIIMS Patna');
 
       // Navigate into the Command Center / Bed Map with the published configuration
       setTimeout(() => {

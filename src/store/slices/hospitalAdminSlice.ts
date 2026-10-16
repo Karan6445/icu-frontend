@@ -165,6 +165,10 @@ export const hospitalAdminSlice = createSlice({
       state.activityLogs.unshift(logItem);
     },
 
+    setICUs: (state, action: PayloadAction<HospitalAdminICURecord[]>) => {
+      state.icus = action.payload;
+    },
+
     updateBedStatus: (
       state,
       action: PayloadAction<{ bedId: string; status: BedStatus; reason?: string }>
@@ -201,20 +205,47 @@ export const hospitalAdminSlice = createSlice({
       }
     },
 
+    setBeds: (state, action: PayloadAction<HospitalAdminBedRecord[]>) => {
+      state.beds = action.payload;
+    },
+
     addBed: (
       state,
-      action: PayloadAction<{ bedNumber: string; icuId: string; floorLocation?: string }>
+      action: PayloadAction<Partial<HospitalAdminBedRecord> & {
+        bedNumber: string;
+        icuId: string;
+      }>
     ) => {
-      const targetIcu = state.icus.find(i => i.id === action.payload.icuId);
+      const targetIcu = state.icus.find(i => i.id === action.payload.icuId || i.code === action.payload.icuId);
+      const isIso = Boolean(action.payload.is_isolation ?? action.payload.isIsolation ?? false);
+      const hasDial = Boolean(action.payload.has_dialysis_port ?? action.payload.hasDialysisPort ?? false);
       const newBed: HospitalAdminBedRecord = {
-        id: `BED-${Date.now()}`,
-        hospitalId: state.assignedHospitalId,
+        id: action.payload.id || `BED-${Date.now()}`,
+        hospitalId: action.payload.hospitalId || state.assignedHospitalId,
         bedNumber: action.payload.bedNumber,
         icuId: action.payload.icuId,
-        icuName: targetIcu ? targetIcu.name : 'Intensive Care Unit',
-        status: 'AVAILABLE',
-        telemetryStatus: 'ONLINE',
-        equipmentConnected: ['ECG Telemetry Monitor', 'Infusion Pump']
+        icuName: action.payload.icuName || (targetIcu ? targetIcu.name : 'Intensive Care Unit'),
+        status: action.payload.status || 'AVAILABLE',
+        patientId: action.payload.patientId,
+        patientName: action.payload.patientName,
+        patientAge: action.payload.patientAge,
+        patientGender: action.payload.patientGender,
+        assignedDoctor: action.payload.assignedDoctor || 'Dr. Vikram Sethi',
+        assignedNurse: action.payload.assignedNurse || 'Nurse Sunita Rao',
+        telemetryStatus: action.payload.telemetryStatus || 'ONLINE',
+        equipmentConnected: action.payload.equipmentConnected || [
+          'ECG Telemetry Monitor',
+          isIso ? 'Negative Pressure Filter' : 'Infusion Pump',
+          ...(hasDial ? ['Hemodialysis / CRRT Port'] : []),
+        ],
+        is_isolation: isIso,
+        isIsolation: isIso,
+        has_dialysis_port: hasDial,
+        hasDialysisPort: hasDial,
+        current_admission_id: action.payload.current_admission_id || action.payload.currentAdmissionId || null,
+        currentAdmissionId: action.payload.current_admission_id || action.payload.currentAdmissionId || null,
+        last_cleaned_at: action.payload.last_cleaned_at || action.payload.lastCleanedAt || new Date().toISOString(),
+        lastCleanedAt: action.payload.last_cleaned_at || action.payload.lastCleanedAt || new Date().toISOString(),
       };
       state.beds.unshift(newBed);
 
@@ -297,7 +328,9 @@ export const {
   addDoctor,
   addNurse,
   addICU,
+  setICUs,
   addBed,
+  setBeds,
   updateBedStatus,
   updateShiftSchedule,
   setDateRangeFilter,

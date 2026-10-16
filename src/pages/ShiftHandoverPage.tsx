@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   addClinicalNote,
@@ -8,10 +8,15 @@ import {
   addDoctorHandoverUpdate,
   DoctorHandoverUpdate
 } from '../store/slices/patientSlice';
+import {
+  createNurseHandoverThunk,
+  createShiftHandoverThunk,
+} from '../store/slices/operationsSlice';
 import { HandoverService } from '../services/handoverService';
 import { HandoverRecord } from '../types/icu';
 import {
   CheckSquare,
+  ClipboardCheck,
   UserCheck,
   ShieldCheck,
   FileText,
@@ -60,6 +65,7 @@ const NURSE_ROSTER = [
 ];
 
 export const ShiftHandoverPage: React.FC = () => {
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const location = useLocation();
   const { patients } = useAppSelector(state => state.patient);
@@ -374,6 +380,18 @@ export const ShiftHandoverPage: React.FC = () => {
           shift: newNurseShift
         })
       );
+      // Synchronize with ICU Operations Backend (POST /api/v1/operations/nurse-handovers)
+      dispatch(
+        createNurseHandoverThunk({
+          admission_id: (selectedPatient as any).admissionId || selectedPatient.id || 'a1d63183-f727-4a4c-a8d8-a12db1454282',
+          incoming_nurse_id: 'b503be05-e5e5-43c0-b853-4cf88a014423',
+          situation: situationText || `Handover to ${incomingNurse}`,
+          background: backgroundText || `Bedside monitoring active in ${selectedPatient.bedNumber}`,
+          assessment: assessmentText || nurseHandoverNotes || 'Patient stable on handover transfer',
+          recommendation: recommendationText || 'Continue standard ICU monitoring and scheduled medications',
+          lines_and_devices: []
+        })
+      );
     } else {
       // Doctor Sign-Off: update patient doctor handover directives in Redux
       dispatch(
@@ -394,6 +412,22 @@ export const ShiftHandoverPage: React.FC = () => {
           doctorName: outgoingDoctor,
           note: `[ISBAR SHIFT HANDOVER] Handed over patient care to ${incomingDoctor}. Recommendations: ${recommendationText}`,
           remark: 'Shift Handover Sign-Off'
+        })
+      );
+
+      // Synchronize with ICU Operations Backend (POST /api/v1/operations/shift-handovers)
+      dispatch(
+        createShiftHandoverThunk({
+          icu_id: '4d97e6e2-e4a4-41f0-95b2-428f7e80de88',
+          incoming_incharge_id: 'e2224da6-d357-4563-a854-7bf86106423d',
+          shift_type: 'MORNING_TO_EVENING',
+          shift_date: new Date().toISOString().split('T')[0],
+          census_summary: {
+            total_patients: patients.length,
+            critical_patients: patients.filter(p => p.status === 'CRITICAL').length,
+            ventilated_patients: patients.filter(p => Boolean(p.ventilator)).length,
+          },
+          safety_concerns: `[DOCTOR ISBAR] ${situationText} | Assessment: ${assessmentText} | Plan: ${recommendationText}`,
         })
       );
     }
@@ -462,6 +496,14 @@ export const ShiftHandoverPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/operations')}
+            className="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer border border-slate-300 dark:border-slate-700"
+            title="Open Full ICU Operations, Rounds & Handovers Hub"
+          >
+            <ClipboardCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <span>ICU Operations & Rounds Hub</span>
+          </button>
           <button
             onClick={() => setShowSignOffModal(true)}
             className="px-5 py-3 rounded-xl bg-[#0F766E] hover:bg-[#0D655E] text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer"

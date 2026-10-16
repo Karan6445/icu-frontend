@@ -37,3 +37,4 @@ export * from './UserManagementPage';
 export * from './AdminDepartmentsPage';
 export * from './StateManagementPage';
 export * from './OrganizationManagementPage';
+export * from './HospitalAdminStaffPage';

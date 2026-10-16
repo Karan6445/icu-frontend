@@ -17,6 +17,14 @@ import stateReducer from './slices/stateSlice';
 import districtReducer from './slices/districtSlice';
 import organizationReducer from './slices/organizationSlice';
 import departmentReducer from './slices/departmentSlice';
+import staffReducer from './slices/staffSlice';
+import auditReducer from './slices/auditSlice';
+import patientTimelineReducer from './slices/patientTimelineSlice';
+import operationsReducer from './slices/operationsSlice';
+import monitoringReducer from './slices/monitoringSlice';
+import emergencyReducer from './slices/emergencySlice';
+import meetingReducer from './slices/meetingSlice';
+import notificationReducer from './slices/notificationSlice';
 
 export const store = configureStore({
   reducer: {
@@ -38,6 +46,14 @@ export const store = configureStore({
     district: districtReducer,
     organization: organizationReducer,
     department: departmentReducer,
+    staff: staffReducer,
+    audit: auditReducer,
+    patientTimeline: patientTimelineReducer,
+    operations: operationsReducer,
+    monitoring: monitoringReducer,
+    emergency: emergencyReducer,
+    meetings: meetingReducer,
+    notifications: notificationReducer,
   }
 });
 

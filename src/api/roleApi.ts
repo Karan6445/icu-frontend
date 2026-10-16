@@ -220,8 +220,11 @@ export const roleApi = {
       fallback = fallback.filter(r => !r.hospital_id || r.hospital_id === params.hospital_id);
     }
 
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const queryParams: Record<string, string | number | boolean> = {};
-    if (params?.hospital_id) queryParams.hospital_id = params.hospital_id;
+    if (params?.hospital_id && UUID_REGEX.test(params.hospital_id)) {
+      queryParams.hospital_id = params.hospital_id;
+    }
 
     try {
       const res = await apiClient.get<RoleResponse[]>(

@@ -109,6 +109,16 @@ export interface HospitalAdminBedRecord {
   telemetryStatus: TelemetryStatus;
   equipmentConnected: string[];
   hospitalId: string;
+  is_isolation?: boolean;
+  isIsolation?: boolean;
+  has_dialysis_port?: boolean;
+  hasDialysisPort?: boolean;
+  current_admission_id?: string | null;
+  currentAdmissionId?: string | null;
+  last_cleaned_at?: string | null;
+  lastCleanedAt?: string | null;
+  created_at?: string;
+  createdAt?: string;
 }
 
 export interface PatientEncounterRecord {

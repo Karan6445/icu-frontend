@@ -72,10 +72,12 @@ export const departmentApi = {
    * GET /api/v1/departments?hospital_id=...
    * List Clinical Departments in Hospital
    */
-  async list(hospital_id: string): Promise<ApiResponse<DepartmentResponse[]>> {
+  async list(hospital_id?: string): Promise<ApiResponse<DepartmentResponse[]>> {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const validHospId = hospital_id && UUID_REGEX.test(hospital_id) ? hospital_id : 'a324634e-b022-44ac-b633-448e14f35ad4';
     try {
       const res = await apiClient.get<any>(API_ENDPOINTS.DEPARTMENTS.BASE, undefined, {
-        params: { hospital_id },
+        params: { hospital_id: validHospId },
       });
       const raw = res.data;
       const listData = Array.isArray(raw) ? raw : (raw?.data || raw?.items || []);

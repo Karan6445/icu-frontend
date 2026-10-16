@@ -13,6 +13,28 @@ export * from './districtApi';
 export * from './organizationApi';
 export * from './tenantApi';
 export * from './departmentApi';
+export * from './icuApi';
+export * from './admissionApi';
+export * from './bedApi';
+export {
+  staffApi,
+  DEFAULT_FALLBACK_STAFF,
+  normalizeStaffMember,
+} from './staffApi';
+export type {
+  StaffUser,
+  HospitalStaffMember,
+  StaffListResponse,
+  StaffProfileCreatePayload,
+  StaffQueryParams,
+} from './staffApi';
+export * from './auditApi';
+export * from './patientTimelineApi';
+export * from './operationsApi';
+export * from './monitoringApi';
+export * from './emergencyApi';
+export * from './meetingApi';
+export * from './notificationApi';
 export {
   permissionApi,
   FALLBACK_PERMISSIONS_LIST,

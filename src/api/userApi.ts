@@ -77,21 +77,67 @@ export interface UserListParams {
 // ----------------------------------------------------
 export const FALLBACK_USERS: UserResponse[] = [
   {
-    id: 'b1111111-1111-4111-8111-111111111111',
+    id: 'b503be05-e5e5-43c0-b853-4cf88a014423',
     email: 'superadmin@smarticu.org',
-    first_name: 'Dr. Vikram',
-    last_name: 'Sarin',
-    full_name: 'Dr. Vikram Sarin',
-    phone_number: '9876543210',
-    employee_id: 'EMP-SA-001',
+    first_name: 'Dr. Rajesh',
+    last_name: 'Vardhan',
+    full_name: 'Dr. Rajesh Vardhan (SuperAdmin)',
+    phone_number: '+91 98401 22910',
+    employee_id: 'EMP-ROOT-001',
     status: 'ACTIVE',
     is_super_admin: true,
     hospital_id: 'a324634e-b022-44ac-b633-448e14f35ad4',
-    role: 'SUPER_ADMIN',
+    role: 'INTENSIVIST',
     mfa_enabled: true,
-    mfa_enrolled_at: '2026-01-15T08:00:00Z',
-    mfa_last_verified_at: '2026-10-09T09:30:00Z',
     created_at: '2026-01-01T00:00:00Z',
+    is_deleted: false,
+  },
+  {
+    id: 'c7ce34d0-b8b1-40a3-b580-5dc110b5bdea',
+    email: 'doctor.dl-ndl-01@synthetic.smarticu.org',
+    first_name: 'Dr. Alexander',
+    last_name: 'Mehta',
+    full_name: 'Dr. Alexander Mehta [DL-NDL-01]',
+    phone_number: '+91 98050 20610',
+    employee_id: 'EMP-DL-NDL-01-DOC',
+    status: 'ACTIVE',
+    is_super_admin: false,
+    hospital_id: 'a324634e-b022-44ac-b633-448e14f35ad4',
+    role: 'DOCTOR',
+    mfa_enabled: true,
+    created_at: '2026-10-07T12:14:37Z',
+    is_deleted: false,
+  },
+  {
+    id: 'ec647bb6-0880-4f80-bfc4-70f4c37122ec',
+    email: 'hospital.admin@smarticu.org',
+    first_name: 'Dr. Ananya',
+    last_name: 'Roy',
+    full_name: 'Dr. Ananya Roy',
+    phone_number: '+91 98111 20002',
+    employee_id: 'EMP-DOC-102',
+    status: 'ACTIVE',
+    is_super_admin: false,
+    hospital_id: 'a324634e-b022-44ac-b633-448e14f35ad4',
+    role: 'HOSPITAL_ADMIN',
+    mfa_enabled: false,
+    created_at: '2026-02-10T11:00:00Z',
+    is_deleted: false,
+  },
+  {
+    id: 'f40d0237-ffa7-458b-bda6-752204c24483',
+    email: 'nurse.charge@smarticu.org',
+    first_name: 'Sunita',
+    last_name: 'Rao',
+    full_name: 'Sunita Rao',
+    phone_number: '+91 98222 30003',
+    employee_id: 'EMP-NUR-201',
+    status: 'ACTIVE',
+    is_super_admin: false,
+    hospital_id: 'a324634e-b022-44ac-b633-448e14f35ad4',
+    role: 'CHARGE_NURSE',
+    mfa_enabled: true,
+    created_at: '2026-03-01T09:15:00Z',
     is_deleted: false,
   },
   {
@@ -230,8 +276,11 @@ export const userApi = {
       fallback = fallback.filter(u => !u.is_deleted);
     }
 
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const queryParams: Record<string, string | number | boolean> = {};
-    if (params?.hospital_id) queryParams.hospital_id = params.hospital_id;
+    if (params?.hospital_id && UUID_REGEX.test(params.hospital_id)) {
+      queryParams.hospital_id = params.hospital_id;
+    }
     if (params?.include_deleted !== undefined) queryParams.include_deleted = params.include_deleted;
 
     try {
@@ -240,8 +289,19 @@ export const userApi = {
         fallback,
         { params: queryParams }
       );
-      const normalized = extractData<UserResponse[]>(res.data);
-      if (Array.isArray(normalized)) {
+      let normalized: UserResponse[] = [];
+      const raw = res.data;
+      if (Array.isArray(raw)) {
+        normalized = raw;
+      } else if (raw && typeof raw === 'object') {
+        if (Array.isArray((raw as any).items)) {
+          normalized = (raw as any).items;
+        } else if (Array.isArray((raw as any).data)) {
+          normalized = (raw as any).data;
+        }
+      }
+
+      if (normalized.length > 0) {
         // Sync local store
         const incomingIds = new Set(normalized.map(u => u.id));
         localUserStore = [
@@ -250,7 +310,9 @@ export const userApi = {
         ];
         return { ...res, data: normalized };
       }
-      return { ...res, data: fallback };
+
+      const activeFallback = fallback.length > 0 ? fallback : localUserStore;
+      return { ...res, data: activeFallback };
     } catch (err) {
       return {
         data: fallback,

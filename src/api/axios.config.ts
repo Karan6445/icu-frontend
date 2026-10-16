@@ -16,7 +16,7 @@ export interface ApiResponse<T> {
 
 export const API_BASE_URL =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
-  'http://10.208.2.18:8000/';
+  'http://10.66.231.18:8000';
 
 export class ApiClient {
   private baseURL: string;
@@ -102,16 +102,38 @@ export class ApiClient {
   // Request Interceptor: Attach bearer token and tenant headers
   private getHeaders(customHeaders?: Record<string, string>): Record<string, string> {
     const token = this.getToken();
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const DEFAULT_HOSP_UUID = 'a324634e-b022-44ac-b633-448e14f35ad4';
+
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem('selected_hospital_id');
+      if (stored && !UUID_REGEX.test(stored)) {
+        localStorage.setItem('selected_hospital_id', DEFAULT_HOSP_UUID);
+      }
+      const icuHosp = localStorage.getItem('icu_hospital_id');
+      if (icuHosp && !UUID_REGEX.test(icuHosp)) {
+        localStorage.setItem('icu_hospital_id', DEFAULT_HOSP_UUID);
+      }
+      const hosp = localStorage.getItem('hospital_id');
+      if (hosp && !UUID_REGEX.test(hosp)) {
+        localStorage.setItem('hospital_id', DEFAULT_HOSP_UUID);
+      }
+    }
+
     const storedHospitalId =
       (typeof localStorage !== 'undefined' &&
-        (localStorage.getItem('selected_hospital_id') || localStorage.getItem('icu_hospital_id'))) ||
+        (localStorage.getItem('selected_hospital_id') || localStorage.getItem('icu_hospital_id') || localStorage.getItem('hospital_id'))) ||
       '';
+    const validHospitalId = storedHospitalId && UUID_REGEX.test(storedHospitalId)
+      ? storedHospitalId
+      : DEFAULT_HOSP_UUID;
 
     return {
       'Content-Type': 'application/json',
       Accept: 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(storedHospitalId ? { 'X-Hospital-Id': storedHospitalId, 'X-Tenant-Id': storedHospitalId } : {}),
+      'X-Hospital-Id': validHospitalId,
+      'X-Tenant-Id': validHospitalId,
       ...customHeaders,
     };
   }
@@ -119,6 +141,10 @@ export class ApiClient {
   // Build target URL properly without dropping domain or duplicating /api/v1
   private buildUrl(endpoint: string, params?: Record<string, string | number | boolean>): string {
     let url = endpoint;
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const DEFAULT_HOSP_UUID = 'a324634e-b022-44ac-b633-448e14f35ad4';
+    const DEFAULT_ICU_UUID = '4d97e6e2-e4a4-41f0-95b2-428f7e80de88';
+
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
@@ -130,11 +156,71 @@ export class ApiClient {
       }
     }
 
+    // Sanitize any existing non-UUID query params in the URL itself (e.g. ?hospital_id=ACH-01)
+    if (url.includes('?')) {
+      try {
+        const isAbsolute = url.startsWith('http://') || url.startsWith('https://');
+        const urlObj = new URL(isAbsolute ? url : `http://localhost${url.startsWith('/') ? '' : '/'}${url}`);
+        let hasModified = false;
+
+        const currentHospId = urlObj.searchParams.get('hospital_id');
+        if (currentHospId && !UUID_REGEX.test(currentHospId)) {
+          if (url.includes('/api/v1/icus')) {
+            urlObj.searchParams.set('hospital_id', DEFAULT_HOSP_UUID);
+          } else {
+            urlObj.searchParams.delete('hospital_id');
+          }
+          hasModified = true;
+        }
+
+        const currentIcuId = urlObj.searchParams.get('icu_id');
+        if (currentIcuId && !UUID_REGEX.test(currentIcuId)) {
+          if (url.includes('/api/v1/beds')) {
+            urlObj.searchParams.set('icu_id', DEFAULT_ICU_UUID);
+          } else {
+            urlObj.searchParams.delete('icu_id');
+          }
+          hasModified = true;
+        }
+
+        if (hasModified) {
+          url = isAbsolute ? urlObj.toString() : urlObj.pathname + urlObj.search;
+        }
+      } catch {
+        // Fallback if URL parsing fails
+      }
+    }
+
     if (params) {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, val]) => {
         if (val !== undefined && val !== null && val !== '') {
-          searchParams.append(key, String(val));
+          let strVal = String(val).trim();
+
+          // Guard hospital_id query parameter against non-UUID values
+          if (key === 'hospital_id') {
+            if (!UUID_REGEX.test(strVal)) {
+              if (url.includes('/icus') || url.includes('/departments')) {
+                strVal = DEFAULT_HOSP_UUID;
+              } else {
+                // For optional filters, avoid sending invalid non-UUID string
+                return;
+              }
+            }
+          }
+
+          // Guard icu_id query parameter against non-UUID values
+          if (key === 'icu_id') {
+            if (!UUID_REGEX.test(strVal)) {
+              if (url.includes('/beds')) {
+                strVal = DEFAULT_ICU_UUID;
+              } else {
+                return;
+              }
+            }
+          }
+
+          searchParams.append(key, strVal);
         }
       });
       const qs = searchParams.toString();

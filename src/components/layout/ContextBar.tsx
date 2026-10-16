@@ -13,7 +13,8 @@ import {
   HeartPulse,
   ExternalLink,
   ChevronDown,
-  Stethoscope
+  Stethoscope,
+  Siren
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 
@@ -29,6 +30,7 @@ export const ContextBar: React.FC<ContextBarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { activeRole } = useAppSelector(state => state.auth);
+  const { activeEvents } = useAppSelector(state => state.emergency);
 
   const [hospital, setHospital] = useState(() => localStorage.getItem('selected_hospital_name') || 'PMCH Patna');
   const [icu, setIcu] = useState(() => localStorage.getItem('selected_icu_id') || 'MICU-01');
@@ -200,6 +202,27 @@ export const ContextBar: React.FC<ContextBarProps> = ({
 
       {/* Right Controls: Quick Drawer Trigger + Break-Glass override */}
       <div className="flex items-center gap-2 shrink-0">
+        {/* Code Blue Trigger / Active Indicator */}
+        {activeEvents && activeEvents.length > 0 ? (
+          <button
+            onClick={() => navigate('/emergency')}
+            className="flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-black bg-rose-600 hover:bg-rose-500 text-white border border-rose-400 shadow-md shadow-rose-950/40 animate-pulse transition-all"
+            title="Active Code Blue Resuscitation in Progress! Click to open emergency command center"
+          >
+            <Siren className="w-3.5 h-3.5 animate-bounce" />
+            <span>CODE BLUE ({activeEvents.length})</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate('/emergency')}
+            className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30"
+            title="Emergency Events & Code Blue Resuscitation Protocol"
+          >
+            <Siren className="w-3.5 h-3.5 text-rose-500" />
+            <span>Code Blue</span>
+          </button>
+        )}
+
         {/* Break-Glass Emergency Access */}
         <button
           onClick={() => setShowBreakGlassModal(true)}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { updateShiftSchedule } from '../../store/slices/hospitalAdminSlice';
 import { ShiftStatus, ShiftType } from '../../types/hospitalAdmin';
@@ -60,8 +61,16 @@ export const HospitalAdminShiftsPage: React.FC = () => {
           </p>
         </div>
 
-        {/* View Mode Switcher */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/admin/hospital-staff"
+            className="flex items-center gap-2 bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-bold font-mono px-3.5 py-2 rounded-xl transition-all shadow-xs"
+          >
+            <Users className="w-3.5 h-3.5 text-amber-600" /> Staff API by Shift
+          </Link>
+
+          {/* View Mode Switcher */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
           <button
             onClick={() => setViewMode('DAILY')}
             className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
@@ -88,6 +97,7 @@ export const HospitalAdminShiftsPage: React.FC = () => {
           </button>
         </div>
       </div>
+    </div>
 
       {/* Coverage KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">

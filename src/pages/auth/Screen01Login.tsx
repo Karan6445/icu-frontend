@@ -131,9 +131,12 @@ export const Screen01Login: React.FC = () => {
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
-      if (hospitalId || innerData?.hospital_id) {
-        localStorage.setItem('selected_hospital_id', hospitalId || innerData?.hospital_id);
-      }
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const targetHosp = innerData?.hospital_id || hospitalId;
+      const validHosp = targetHosp && UUID_REGEX.test(targetHosp)
+        ? targetHosp
+        : 'a324634e-b022-44ac-b633-448e14f35ad4';
+      localStorage.setItem('selected_hospital_id', validHosp);
 
       // Synchronize authoritative user data, role, and permissions into Redux immediately
       dispatch(setAuthenticatedUser(innerData));

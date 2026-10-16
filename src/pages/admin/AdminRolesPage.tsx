@@ -415,7 +415,7 @@ export const AdminRolesPage: React.FC = () => {
               RBAC & PERMISSIONS ENGINE
             </span>
             <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[11px] font-mono rounded-md">
-              API: http://10.51.4.18:8000
+              API: http://10.208.2.18:8000
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-2">
@@ -746,7 +746,7 @@ export const AdminRolesPage: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
-                Source: <code className="font-mono text-teal-700 dark:text-teal-300">GET http://10.51.4.18:8000/api/v1/permissions/matrix</code>.
+                Source: <code className="font-mono text-teal-700 dark:text-teal-300">GET http://10.208.2.18:8000/api/v1/permissions/matrix</code>.
                 Provides the canonical 4-tier capability structure (Create, Read, Update, Delete) mapped to each critical ICU domain resource.
               </p>
             </div>
@@ -901,7 +901,7 @@ export const AdminRolesPage: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
-                Source: <code className="font-mono text-teal-700 dark:text-teal-300">GET http://10.51.4.18:8000/api/v1/permissions</code>.
+                Source: <code className="font-mono text-teal-700 dark:text-teal-300">GET http://10.208.2.18:8000/api/v1/permissions</code>.
                 Query parameter: <code className="font-mono">?module={selectedModuleFilter === 'ALL' ? '' : selectedModuleFilter}</code>.
               </p>
             </div>

@@ -14,6 +14,7 @@ import {
   FileText,
   HeartPulse,
   ClipboardList,
+  ClipboardCheck,
   Stethoscope,
   Truck,
   Video,
@@ -193,6 +194,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     remarks: adminRemarks,
     shifts: adminShifts
   } = useAppSelector(state => state.hospitalAdmin);
+  const { activeEvents } = useAppSelector(state => state.emergency);
+  const { unreadCount } = useAppSelector(state => state.notifications);
 
   const collapsed = isMobileDrawer ? false : isCollapsed;
 
@@ -406,21 +409,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'alerts',
-      label: 'Alerts & Escalations',
-      path: '/alerts',
+      label: 'Notifications & Alerts',
+      path: '/notifications',
       icon: Bell,
-      badge: 'Active',
-      badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-400/30',
+      badge: unreadCount > 0 ? `${unreadCount} New` : 'Active',
+      badgeColor: unreadCount > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-rose-500/20 text-rose-300 border-rose-400/30',
       category: 'PATIENT_CARE'
     },
 
     // AUDIT & GOVERNANCE (audit:*)
     {
       id: 'audit-logs',
-      label: 'Immutable Audit Logs',
+      label: 'Audit Trails & Access Logs',
       path: '/admin/audit-logs',
       icon: ShieldAlert,
-      badge: 'Forensic',
+      badge: 'Live API',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
       category: 'AUDIT_SECURITY'
     },
@@ -443,6 +446,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     // EMERGENCY & REMOTE CARE
     {
+      id: 'emergency-code-blue',
+      label: 'Emergency & Code Blue',
+      path: '/emergency',
+      icon: Siren,
+      badge: activeEvents.length > 0 ? `${activeEvents.length} STAT` : 'STAT',
+      badgeColor:
+        activeEvents.length > 0
+          ? 'bg-rose-500 text-white border-rose-400 animate-pulse'
+          : 'bg-rose-500/20 text-rose-300 border-rose-400/30',
+      category: 'EMERGENCY'
+    },
+    {
       id: 'ambulance',
       label: 'Ambulance Command (GPS)',
       path: '/ambulance',
@@ -457,6 +472,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       path: '/video',
       icon: Video,
       badge: 'PTZ Live',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'EMERGENCY'
+    },
+    {
+      id: 'tele-icu-meetings',
+      label: 'Tele-ICU & MDT Meetings',
+      path: '/meetings',
+      icon: Video,
+      badge: 'Live AI',
       badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30',
       category: 'EMERGENCY'
     },
@@ -511,12 +535,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
     
     // CARE WORKFLOW
     { id: 'orders', label: 'Doctor Orders', path: '/orders', icon: ClipboardList, category: 'CARE WORKFLOW' },
+    { id: 'icu-operations', label: 'ICU Operations & Rounds', path: '/operations', icon: ClipboardCheck, badge: 'Live API', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30', category: 'CARE WORKFLOW' },
+    { id: 'patient-timeline', label: 'Patient Timeline', path: '/patient/timeline', icon: History, badge: 'Milestones', badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30', category: 'CARE WORKFLOW' },
     { id: 'nursing', label: 'Nursing', path: '/nursing', icon: Stethoscope, badge: 'Flowsheet', badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30', category: 'CARE WORKFLOW' },
     { id: 'care-plan', label: 'Care Plan', path: '/care-plan', icon: FileText, category: 'CARE WORKFLOW' },
+    {
+      id: 'notifications',
+      label: 'Notifications & Alerts',
+      path: '/notifications',
+      icon: Bell,
+      badge: unreadCount > 0 ? `${unreadCount} New` : 'Active',
+      badgeColor: unreadCount > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-teal-500/20 text-teal-300 border-teal-400/30',
+      category: 'CARE WORKFLOW'
+    },
     
     // EMERGENCY & REMOTE
+    {
+      id: 'emergency-code-blue',
+      label: 'Emergency & Code Blue',
+      path: '/emergency',
+      icon: Siren,
+      badge: activeEvents.length > 0 ? `${activeEvents.length} STAT` : 'STAT',
+      badgeColor:
+        activeEvents.length > 0
+          ? 'bg-rose-500 text-white border-rose-400 animate-pulse'
+          : 'bg-rose-500/20 text-rose-300 border-rose-400/30',
+      category: 'EMERGENCY & REMOTE'
+    },
     { id: 'ambulance', label: 'Ambulance Command', path: '/ambulance', icon: Truck, badge: 'GPS', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-400/30', category: 'EMERGENCY & REMOTE' },
     { id: 'video', label: 'Video Command', path: '/video', icon: Video, badge: 'PTZ Live', badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30', category: 'EMERGENCY & REMOTE' },
+    { id: 'tele-icu-meetings', label: 'Tele-ICU & Meetings', path: '/meetings', icon: Video, badge: 'Live AI', badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-400/30', category: 'EMERGENCY & REMOTE' },
     { id: 'virtual-icu', label: 'Virtual ICU', path: '/virtual-icu', icon: Layers, category: 'EMERGENCY & REMOTE' },
     
     // QUALITY & ADMINISTRATION
@@ -591,6 +639,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Calendar,
       badge: `${adminShifts?.length || 3} Shifts`,
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/30',
+      category: 'STAFF_MANAGEMENT'
+    },
+    {
+      id: 'admin-staff-directory',
+      label: 'Clinical Staff Directory',
+      path: '/admin/hospital-staff',
+      icon: Users,
+      badge: 'Live API',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
       category: 'STAFF_MANAGEMENT'
     },
 
@@ -673,10 +730,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'admin-activity-logs',
-      label: 'Audit Trail & Activity Logs',
-      path: '/admin/activity-logs',
+      label: 'Audit Trail & Access Logs',
+      path: '/admin/audit-logs',
       icon: Activity,
-      badge: 'Audit',
+      badge: 'Live API',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
       category: 'REPORTING_SECURITY'
     }
@@ -921,11 +978,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (item.path === '/admin/hospital-doctors' && location.pathname === '/admin/doctors') return true;
     if (item.path === '/admin/hospital-nurses' && (location.pathname === '/admin/nurses' || location.pathname === '/admin/nurse-leads')) return true;
     if (item.path === '/admin/hospital-shifts' && location.pathname === '/admin/shifts') return true;
+    if (item.path === '/admin/hospital-staff' && (location.pathname === '/admin/staff' || location.pathname === '/admin/hospital-staff')) return true;
     if (item.path === '/admin/hospital-icus' && location.pathname === '/admin/icu-management') return true;
     if (item.path === '/admin/add-icu' && (location.pathname === '/admin/add-icu' || location.search.includes('add-icu'))) return true;
     if (item.path === '/admin/hospital-patients' && location.pathname === '/admin/patients') return true;
     if (item.path === '/admin/remarks' && (location.pathname === '/admin/doctor-remarks' || location.pathname === '/admin/nurse-remarks')) return true;
     if (item.path === '/admin/timeline' && location.pathname === '/admin/patient-timeline') return true;
+    if (item.path === '/patient/timeline' && (location.pathname === '/patient/timeline' || location.pathname.includes('/timeline'))) return true;
+    if (item.path === '/operations' && location.pathname.startsWith('/operations')) return true;
     if (item.path === '/admin/custom-reports' && location.pathname === '/admin/reports') return true;
     if (item.path === '/admin/departments' && location.pathname === '/admin/departments') return true;
     if (item.path === '/admin/districts' && location.pathname === '/admin/districts') return true;
@@ -939,6 +999,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (item.path === '/nurse/notes' && location.pathname === '/nurse/notes') return true;
     if (item.path === '/nurse/add-patient' && location.pathname === '/nurse/add-patient') return true;
     if (item.path === '/dashboard/overview' && (location.pathname === '/dashboard' || location.pathname === '/dashboard/overview' || location.pathname === '/admin/super-dashboard')) return true;
+    if (item.path === '/meetings' && (location.pathname === '/meetings' || location.pathname.startsWith('/tele-icu'))) return true;
+    if ((item.path === '/notifications' || item.path === '/alerts') && (location.pathname === '/notifications' || location.pathname === '/alerts' || location.pathname.startsWith('/clinical/notifications'))) return true;
     if (item.path === '/command-center' && location.pathname === '/') return true;
     return false;
   };

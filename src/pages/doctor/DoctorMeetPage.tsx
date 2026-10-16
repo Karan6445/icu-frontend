@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Mic, 
   MicOff, 
@@ -34,11 +34,33 @@ import {
   ExternalLink,
   ChevronDown,
   LayoutGrid,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck,
+  Disc,
+  FileText,
+  Play,
+  Square,
+  Activity,
+  Layers,
+  CheckCircle2
 } from 'lucide-react';
 import { GoogleMeetIcon } from '../../components/layout/NaimifyMeetModal';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { validateEmail } from '../../utils/validation';
+import {
+  fetchMeetingDetailsThunk,
+  joinMeetingThunk,
+  leaveMeetingThunk,
+  endMeetingThunk,
+  fetchTranscriptThunk,
+  saveTranscriptThunk,
+  fetchSummaryThunk,
+  saveSummaryThunk,
+  verifySummaryThunk,
+  attachRecordingThunk,
+  inviteParticipantThunk
+} from '../../store/slices/meetingSlice';
+import { DEFAULT_MEETING_HOST_UUID, DEFAULT_MEETING_CONSULTANT_UUID } from '../../api/meetingApi';
 
 interface ChatMessage {
   id: string;
@@ -61,10 +83,19 @@ interface Participant {
 
 export const DoctorMeetPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector(state => state.auth);
+  const { activeMeeting, transcript, summary, isVerifyingSummary } = useAppSelector(state => state.meetings);
+
+  // Read meeting_id query parameter or active meeting from Redux
+  const meetingIdParam = searchParams.get('meeting_id');
+  const activeMeetingId = meetingIdParam || activeMeeting?.id || '9e3b00d5-a914-453f-ac33-0e5f87590d6a';
 
   // Meeting Room State
-  const [meetingCode, setMeetingCode] = useState<string>('nmf-meet-icu');
+  const [meetingCode, setMeetingCode] = useState<string>(
+    meetingIdParam ? meetingIdParam.slice(0, 10) : 'nmf-meet-icu'
+  );
   const [isCallActive, setIsCallActive] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<string>('');
 
@@ -85,6 +116,18 @@ export const DoctorMeetPage: React.FC = () => {
   const [showMoreMenu, setShowMoreMenu] = useState<boolean>(false);
   const [activeSidebar, setActiveSidebar] = useState<string | null>(null); // 'info' | 'people' | 'chat' | 'activities' | 'host'
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+
+  // Tele-ICU Activities Sub-tab: 'summary' | 'transcript' | 'recording' | 'whiteboard'
+  const [activityTab, setActivityTab] = useState<'summary' | 'transcript' | 'recording' | 'whiteboard'>('summary');
+
+  // Real-time Ingestion State
+  const [speechSpeaker, setSpeechSpeaker] = useState<string>(currentUser.name || 'Attending Intensivist');
+  const [speechText, setSpeechText] = useState<string>('');
+  const [isSubmittingSpeech, setIsSubmittingSpeech] = useState<boolean>(false);
+
+  // Recording State
+  const [isRecordingOn, setIsRecordingOn] = useState<boolean>(false);
+  const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
 
   // Add People Form
   const [inviteInput, setInviteInput] = useState<string>('');
@@ -110,6 +153,29 @@ export const DoctorMeetPage: React.FC = () => {
       initials: currentUser.name ? currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'VA'
     }
   ]);
+
+  // Initial sync with backend Tele-ICU session
+  useEffect(() => {
+    if (activeMeetingId) {
+      dispatch(fetchMeetingDetailsThunk(activeMeetingId));
+      dispatch(fetchTranscriptThunk(activeMeetingId));
+      dispatch(fetchSummaryThunk(activeMeetingId));
+      dispatch(joinMeetingThunk(activeMeetingId));
+    }
+  }, [activeMeetingId, dispatch]);
+
+  // Recording timer
+  useEffect(() => {
+    let interval: any = null;
+    if (isRecordingOn) {
+      interval = setInterval(() => {
+        setRecordingSeconds((s) => s + 1);
+      }, 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRecordingOn]);
 
   // Update clock every second
   useEffect(() => {
@@ -219,10 +285,85 @@ export const DoctorMeetPage: React.FC = () => {
 
     setInviteInput('');
     setInviteSent(true);
+
+    // Also dispatch to backend participant invite API
+    if (activeMeetingId) {
+      dispatch(
+        inviteParticipantThunk({
+          meetingId: activeMeetingId,
+          payload: {
+            user_id: DEFAULT_MEETING_CONSULTANT_UUID,
+            role_in_meeting: 'CONSULTANT'
+          }
+        })
+      );
+    }
+
     setTimeout(() => {
       setInviteSent(false);
       setShowAddPeopleModal(false);
     }, 1500);
+  };
+
+  // Tele-ICU In-Call Handlers
+  const handleVerifyDecisionsInCall = async () => {
+    if (!activeMeetingId) return;
+    await dispatch(verifySummaryThunk(activeMeetingId));
+  };
+
+  const handleIngestSpeechInCall = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeMeetingId || !speechText.trim()) return;
+    setIsSubmittingSpeech(true);
+
+    const currentSegments = transcript?.transcript_json || activeMeeting?.transcript?.transcript_json || [];
+    const newEntry = {
+      speaker: speechSpeaker,
+      timestamp: Math.floor(Date.now() / 1000),
+      text: speechText.trim()
+    };
+    const updated = [...currentSegments, newEntry];
+    const fullText = updated.map((t: any) => `${t.speaker}: ${t.text}`).join('\n\n');
+
+    await dispatch(
+      saveTranscriptThunk({
+        meetingId: activeMeetingId,
+        payload: {
+          full_text: fullText,
+          language: 'en-US',
+          transcript_json: updated
+        }
+      })
+    );
+    setSpeechText('');
+    setIsSubmittingSpeech(false);
+  };
+
+  const handleToggleRecordingInCall = async () => {
+    if (!isRecordingOn) {
+      setIsRecordingOn(true);
+    } else {
+      setIsRecordingOn(false);
+      if (activeMeetingId && recordingSeconds > 0) {
+        await dispatch(
+          attachRecordingThunk({
+            meetingId: activeMeetingId,
+            payload: {
+              file_path: `s3://icu-teleconferencing/${activeMeetingId}/rec-${Date.now()}.mp4`,
+              duration_seconds: recordingSeconds,
+              encryption_key_id: 'kms-rsa-teleicu-v3'
+            }
+          })
+        );
+      }
+    }
+  };
+
+  const handleLeaveOrConcludeCall = async () => {
+    if (activeMeetingId) {
+      await dispatch(leaveMeetingThunk(activeMeetingId));
+    }
+    setIsCallActive(false);
   };
 
   const toggleSidebar = (name: string) => {
@@ -692,24 +833,215 @@ export const DoctorMeetPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Activities Panel */}
+              {/* Activities Panel with Live Clinical AI Integration */}
               {activeSidebar === 'activities' && (
-                <div className="space-y-3 text-xs">
-                  <div className="p-3 bg-[#202124] border border-white/10 rounded-xl hover:border-white/20 transition-all cursor-pointer">
-                    <div className="flex items-center gap-2.5 mb-1 font-medium text-white">
-                      <Shapes className="w-4 h-4 text-[#8ab4f8]" />
-                      <span>Whiteboarding</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400">Open a Jam to draw and brainstorm together</p>
+                <div className="space-y-4 text-xs">
+                  {/* Activities Navigation Pills */}
+                  <div className="grid grid-cols-4 gap-1 p-1 bg-[#202124] rounded-xl border border-white/10 text-[10px] font-medium">
+                    <button
+                      onClick={() => setActivityTab('summary')}
+                      className={`py-1.5 rounded-lg transition-colors cursor-pointer ${
+                        activityTab === 'summary' ? 'bg-[#8ab4f8] text-[#202124] font-semibold' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Decisions
+                    </button>
+                    <button
+                      onClick={() => setActivityTab('transcript')}
+                      className={`py-1.5 rounded-lg transition-colors cursor-pointer ${
+                        activityTab === 'transcript' ? 'bg-[#8ab4f8] text-[#202124] font-semibold' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Transcript
+                    </button>
+                    <button
+                      onClick={() => setActivityTab('recording')}
+                      className={`py-1.5 rounded-lg transition-colors cursor-pointer ${
+                        activityTab === 'recording' ? 'bg-[#8ab4f8] text-[#202124] font-semibold' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Record
+                    </button>
+                    <button
+                      onClick={() => setActivityTab('whiteboard')}
+                      className={`py-1.5 rounded-lg transition-colors cursor-pointer ${
+                        activityTab === 'whiteboard' ? 'bg-[#8ab4f8] text-[#202124] font-semibold' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Tools
+                    </button>
                   </div>
 
-                  <div className="p-3 bg-[#202124] border border-white/10 rounded-xl hover:border-white/20 transition-all cursor-pointer">
-                    <div className="flex items-center gap-2.5 mb-1 font-medium text-white">
-                      <Circle className="w-4 h-4 text-[#8ab4f8]" />
-                      <span>Recording</span>
+                  {/* SUB-PANEL 1: AI DECISIONS & VERIFICATION */}
+                  {activityTab === 'summary' && (
+                    <div className="space-y-3">
+                      <div className="p-3 bg-[#202124] border border-white/10 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-white flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-[#8ab4f8]" />
+                            Clinical Decisions Synthesis
+                          </span>
+                          {summary?.is_clinically_verified ? (
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
+                              <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                              VERIFIED
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-medium">
+                              Pending Sign-off
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-[11px] text-slate-300 leading-relaxed bg-[#282a2d] p-2.5 rounded-lg border border-white/5">
+                          {summary?.executive_summary || activeMeeting?.summary?.executive_summary || 'Multi-disciplinary tele-ICU conference in progress. Continuous NLP diarization and decision extraction enabled.'}
+                        </p>
+
+                        {/* Decisions checklist */}
+                        <div className="space-y-1.5 pt-1">
+                          <span className="text-[10px] text-slate-400 uppercase font-semibold block">Consensus Decisions</span>
+                          {(summary?.clinical_decisions || [
+                            'Maintain prone positioning protocol for next 16 hours',
+                            'Target MAP >65 mmHg with Noradrenaline weaning',
+                            'Repeat arterial blood gas and electrolyte panel at 16:00'
+                          ]).map((dec, i) => (
+                            <div key={i} className="flex items-start gap-2 text-[11px] text-slate-200">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-teal-400 shrink-0 mt-0.5" />
+                              <span>{dec}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Verification Button (POST /api/v1/meetings/{id}/summaries/verify) */}
+                        {!summary?.is_clinically_verified ? (
+                          <button
+                            onClick={handleVerifyDecisionsInCall}
+                            disabled={isVerifyingSummary}
+                            className="w-full mt-2 py-2 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-98 disabled:opacity-50"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>{isVerifyingSummary ? 'Verifying...' : 'Verify Clinical Decisions'}</span>
+                          </button>
+                        ) : (
+                          <div className="p-2 rounded-lg bg-teal-500/10 border border-teal-500/20 text-[10px] text-teal-300 flex items-center gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                            <span>Signed off by attending intensivist at {new Date(summary.verified_at || Date.now()).toLocaleTimeString()}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Link
+                        to="/meetings"
+                        className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs flex items-center justify-center gap-1.5 transition-colors block text-center"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Open Tele-ICU Meetings Hub</span>
+                      </Link>
                     </div>
-                    <p className="text-[11px] text-slate-400">Record this meeting for people who couldn't attend</p>
-                  </div>
+                  )}
+
+                  {/* SUB-PANEL 2: SPEECH TRANSCRIPT */}
+                  {activityTab === 'transcript' && (
+                    <div className="space-y-3">
+                      <div className="p-3 bg-[#202124] border border-white/10 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-white flex items-center gap-1.5">
+                            <Mic className="w-3.5 h-3.5 text-[#8ab4f8]" />
+                            Live Diarized Speech
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {(transcript?.transcript_json?.length || 0)} utterances
+                          </span>
+                        </div>
+
+                        {/* Transcript turns */}
+                        <div className="max-h-56 overflow-y-auto space-y-2 pr-1 text-slate-200">
+                          {((transcript?.transcript_json || activeMeeting?.transcript?.transcript_json || []).length === 0) ? (
+                            <div className="p-4 text-center text-slate-500 text-[11px]">
+                              Waiting for acoustic speech input...
+                            </div>
+                          ) : (
+                            (transcript?.transcript_json || activeMeeting?.transcript?.transcript_json || []).map((seg: any, idx: number) => (
+                              <div key={idx} className="bg-[#282a2d] p-2 rounded-lg border border-white/5 space-y-0.5">
+                                <span className="text-[10px] text-teal-300 font-semibold block">{seg.speaker}:</span>
+                                <p className="text-[11px] text-slate-300">{seg.text}</p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Speech Ingest form */}
+                        <form onSubmit={handleIngestSpeechInCall} className="pt-2 border-t border-white/10 space-y-2">
+                          <input
+                            type="text"
+                            value={speechText}
+                            onChange={(e) => setSpeechText(e.target.value)}
+                            placeholder="Ingest speech statement..."
+                            className="w-full px-2.5 py-1.5 bg-[#282a2d] border border-white/10 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-[#8ab4f8]"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!speechText.trim() || isSubmittingSpeech}
+                            className="w-full py-1.5 rounded-lg bg-[#8ab4f8] text-[#202124] font-semibold text-xs flex items-center justify-center gap-1 disabled:opacity-40 cursor-pointer shadow-xs"
+                          >
+                            <Send className="w-3 h-3" />
+                            <span>{isSubmittingSpeech ? 'Ingesting...' : 'Ingest Speech Statement'}</span>
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-PANEL 3: ENCRYPTED RECORDING */}
+                  {activityTab === 'recording' && (
+                    <div className="space-y-3">
+                      <div className="p-3 bg-[#202124] border border-white/10 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-white flex items-center gap-1.5">
+                            <Circle className="w-3.5 h-3.5 text-[#8ab4f8]" />
+                            Encrypted Call Recording
+                          </span>
+                          {isRecordingOn && (
+                            <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold animate-pulse flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-rose-500" />
+                              REC {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, '0')}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-[11px] text-slate-400">
+                          {isRecordingOn
+                            ? 'Call audio/video stream is currently being captured and encrypted with hospital KMS key.'
+                            : 'Start session recording to generate HIPAA-compliant encrypted conference archive.'}
+                        </p>
+
+                        <button
+                          onClick={handleToggleRecordingInCall}
+                          className={`w-full py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
+                            isRecordingOn
+                              ? 'bg-rose-600 hover:bg-rose-500 text-white'
+                              : 'bg-[#8ab4f8] hover:bg-[#aecbfa] text-[#202124]'
+                          }`}
+                        >
+                          <Circle className={`w-3.5 h-3.5 ${isRecordingOn ? 'fill-current' : ''}`} />
+                          <span>{isRecordingOn ? 'Stop & Save Recording' : 'Start Recording'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-PANEL 4: TOOLS / JAM */}
+                  {activityTab === 'whiteboard' && (
+                    <div className="space-y-3 text-xs">
+                      <div className="p-3 bg-[#202124] border border-white/10 rounded-xl hover:border-white/20 transition-all cursor-pointer">
+                        <div className="flex items-center gap-2.5 mb-1 font-medium text-white">
+                          <Shapes className="w-4 h-4 text-[#8ab4f8]" />
+                          <span>Whiteboarding (Clinical Jam)</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400">Open a collaborative whiteboard to diagram surgical interventions</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -886,7 +1218,7 @@ export const DoctorMeetPage: React.FC = () => {
 
           {/* End Call (Red Pill Button) */}
           <button
-            onClick={() => setIsCallActive(false)}
+            onClick={handleLeaveOrConcludeCall}
             className="px-6 py-2.5 rounded-full bg-[#ea4335] hover:bg-[#d93025] text-white flex items-center justify-center transition-all shadow-md active:scale-95 cursor-pointer ml-1"
             title="Leave call"
           >

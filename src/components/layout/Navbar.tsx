@@ -28,6 +28,7 @@ import { NotificationDropdown } from './NotificationDropdown';
 import { UserProfileDropdown } from './UserProfileDropdown';
 import { DevRoleSwitcher } from '../common/DevRoleSwitcher';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchUnreadCountThunk } from '../../store/slices/notificationSlice';
 import { setActiveRole, SystemRole } from '../../store/slices/authSlice';
 import { ALL_ICUS_18, ICUOption } from '../../data/icuData';
 import { MOCK_CLINICS } from '../../data/mockEclinicData';
@@ -53,6 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { activeRole, currentUser: reduxUser } = useAppSelector(state => state.auth);
+  const { unreadCount } = useAppSelector(state => state.notifications);
   const { isDark, toggleDarkMode } = useDarkMode();
 
   const [isConnected, setIsConnected] = useState<boolean>(WebSocketService.getIsConnected());
@@ -150,6 +152,18 @@ export const Navbar: React.FC<NavbarProps> = ({
       window.removeEventListener('icuChanged', handleIcuUpdate);
     };
   }, [selectedIcu]);
+
+  // Notification Unread Badge Sync (Mount & Tab Focus)
+  useEffect(() => {
+    dispatch(fetchUnreadCountThunk());
+
+    const handleFocus = () => {
+      dispatch(fetchUnreadCountThunk());
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [dispatch]);
 
   const filteredIcuList = ALL_ICUS_18.filter(icu => {
     const matchesSearch = 
@@ -615,11 +629,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Bell className="w-3.5 h-3.5 text-white shrink-0" />
             <span className="hidden md:inline">Alerts</span>
-            {activeAlerts.length > 0 && (
+            {unreadCount > 0 ? (
               <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-bold animate-pulse shrink-0">
+                {unreadCount}
+              </span>
+            ) : activeAlerts.length > 0 ? (
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-bold shrink-0">
                 {activeAlerts.length}
               </span>
-            )}
+            ) : null}
           </button>
 
           <NotificationDropdown

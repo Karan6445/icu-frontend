@@ -119,7 +119,22 @@ export const patientApi = {
    * List / Search Patients
    */
   async list(params?: PatientQueryParams): Promise<ApiResponse<PatientResponse[]>> {
-    const config = params ? { params: params as Record<string, string | number | boolean> } : undefined;
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const sanitizedParams: Record<string, string | number | boolean> = {};
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '' && v !== 'ALL') {
+          if (k === 'hospital_id') {
+            if (typeof v === 'string' && UUID_REGEX.test(v)) {
+              sanitizedParams[k] = v;
+            }
+          } else {
+            sanitizedParams[k] = v as string | number | boolean;
+          }
+        }
+      });
+    }
+    const config = Object.keys(sanitizedParams).length > 0 ? { params: sanitizedParams } : undefined;
     const res = await apiClient.get<any>(API_ENDPOINTS.PATIENTS.BASE, [], config);
     // Unwrap standard envelope if present
     const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
@@ -147,7 +162,9 @@ export const patientApi = {
    * Register New Patient
    */
   async create(payload: PatientCreate, hospitalId?: string): Promise<ApiResponse<PatientResponse>> {
-    const config = hospitalId ? { params: { hospital_id: hospitalId } } : undefined;
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const validHospId = hospitalId && UUID_REGEX.test(hospitalId) ? hospitalId : (hospitalId ? 'a324634e-b022-44ac-b633-448e14f35ad4' : undefined);
+    const config = validHospId ? { params: { hospital_id: validHospId } } : undefined;
     const res = await apiClient.post<any>(API_ENDPOINTS.PATIENTS.BASE, payload, undefined, config);
     const data = res.data?.data || res.data;
     return {

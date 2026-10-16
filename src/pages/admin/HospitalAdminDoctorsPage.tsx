@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addDoctor } from '../../store/slices/hospitalAdminSlice';
 import { ShiftType, StaffStatus } from '../../types/hospitalAdmin';
@@ -118,12 +119,20 @@ export const HospitalAdminDoctorsPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold font-mono px-4 py-2.5 rounded-xl shadow transition-all"
-        >
-          <UserPlus className="w-4 h-4" /> Register New Doctor
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/admin/hospital-staff"
+            className="flex items-center gap-2 bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 text-teal-800 dark:text-teal-300 border border-teal-500/30 text-xs font-bold font-mono px-3.5 py-2.5 rounded-xl transition-all shadow-xs"
+          >
+            <Users className="w-4 h-4 text-teal-600" /> All Staff API
+          </Link>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold font-mono px-4 py-2.5 rounded-xl shadow transition-all"
+          >
+            <UserPlus className="w-4 h-4" /> Register New Doctor
+          </button>
+        </div>
       </div>
 
       {/* Filter Controls Bar */}

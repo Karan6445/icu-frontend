@@ -28,9 +28,11 @@ export interface CareTeamMember {
   admission_id: string;
   user_id: string;
   name: string;
+  clinician_name?: string;
   role: CareTeamRole | string;
   specialty?: string;
   phone?: string;
+  contact_number?: string;
   email?: string;
   is_primary: boolean;
   status: 'ACTIVE' | 'INACTIVE' | 'OFF_DUTY';
@@ -79,6 +81,7 @@ export interface AdmitPatientPayload {
   bed_id: string;
   bed_number?: string;
   icu_id?: string;
+  icu_name?: string;
   hospital_id?: string;
   admitting_diagnosis: string;
   admission_type?: AdmissionType | string;
@@ -109,9 +112,11 @@ export interface DischargePatientPayload {
 export interface AddCareTeamMemberPayload {
   user_id: string;
   name?: string;
+  clinician_name?: string;
   role: CareTeamRole | string;
   specialty?: string;
   phone?: string;
+  contact_number?: string;
   email?: string;
   is_primary?: boolean;
   notes?: string;

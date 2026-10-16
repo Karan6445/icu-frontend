@@ -14,3 +14,4 @@ export * from './OrdersPage';
 export * from './CarePlanPage';
 export * from './AmbulancePage';
 export * from './VideoPage';
+export * from './MeetingsHubPage';
